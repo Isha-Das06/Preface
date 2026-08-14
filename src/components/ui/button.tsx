@@ -61,36 +61,49 @@ export function Button({
   disabled,
   ...props
 }: ButtonProps) {
-  const Comp = asChild ? Slot : "button";
+  const classes = cn(
+    "relative inline-flex shrink-0 items-center justify-center gap-2 rounded-[6px]",
+    "font-medium whitespace-nowrap select-none",
+    "transition-colors duration-(--dur-fast) ease-(--ease)",
+    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus)",
+    // Disabled is a flat, unmistakably inert surface. aria-disabled
+    // covers the asChild case, where <a> has no disabled attribute.
+    "disabled:pointer-events-none disabled:border-transparent",
+    "disabled:bg-ink-100 disabled:text-ink-400",
+    "aria-disabled:pointer-events-none aria-disabled:border-transparent",
+    "aria-disabled:bg-ink-100 aria-disabled:text-ink-400",
+    VARIANTS[variant],
+    SIZES[size],
+    fullWidth && "w-full",
+    className,
+  );
+
+  // Slot merges props onto a SINGLE element child, so the loading
+  // wrapper cannot be used here. Links don't have a pending state
+  // anyway — that belongs to buttons that fire a request.
+  if (asChild) {
+    return (
+      <Slot
+        className={classes}
+        aria-disabled={disabled || loading || undefined}
+        {...props}
+      >
+        {children}
+      </Slot>
+    );
+  }
 
   return (
-    <Comp
+    <button
       // Never let a loading button be clicked twice.
       disabled={disabled || loading}
       data-loading={loading || undefined}
-      className={cn(
-        "relative inline-flex shrink-0 items-center justify-center rounded-[6px]",
-        "font-medium whitespace-nowrap select-none",
-        "transition-colors duration-(--dur-fast) ease-(--ease)",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus)",
-        // Disabled is a flat, unmistakably inert surface.
-        "disabled:pointer-events-none disabled:border-transparent",
-        "disabled:bg-ink-100 disabled:text-ink-400",
-        VARIANTS[variant],
-        SIZES[size],
-        fullWidth && "w-full",
-        className,
-      )}
+      className={classes}
       {...props}
     >
-      {/* The label stays in flow while loading so the button
-          cannot change width mid-request and shift the layout. */}
-      <span
-        className={cn(
-          "inline-flex items-center gap-2",
-          loading && "invisible",
-        )}
-      >
+      {/* The label stays in flow while loading so the button cannot
+          change width mid-request and shift the layout around it. */}
+      <span className={cn("inline-flex items-center gap-2", loading && "invisible")}>
         {children}
       </span>
       {loading && (
@@ -99,6 +112,6 @@ export function Button({
           className="absolute size-4 animate-spin motion-reduce:animate-none"
         />
       )}
-    </Comp>
+    </button>
   );
 }
