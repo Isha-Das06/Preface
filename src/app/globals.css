@@ -1,26 +1,388 @@
 @import "tailwindcss";
 
+/* ============================================================
+   PREFACE — DESIGN TOKENS
+   Source of truth: docs/04-design-system.md
+
+   Architecture:
+   - Raw values live on :root as --ink-*, --accent-*, --fs-*, etc.
+   - @theme inline maps them into Tailwind utilities via var()
+     indirection, which keeps them swappable AT RUNTIME.
+   - That indirection is what lets .portal redefine the whole
+     type scale without touching a single component.
+
+   Never write a colour literal in a component. Ever.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   1. COLOUR — light (default)
+   Warm neutrals: a red-yellow bias, not the usual cool grey.
+   Warm greys read as paper. Cool greys read as enterprise.
+   ------------------------------------------------------------ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ink-950: #12110f;
+  --ink-900: #1c1a17; /* primary text */
+  --ink-700: #3e3b36;
+  --ink-600: #57534c;
+  --ink-500: #78736b; /* secondary text */
+  --ink-400: #9c968d; /* placeholder, disabled */
+  --ink-300: #c4bfb6;
+  --ink-200: #dfdad1; /* borders */
+  --ink-150: #eae6de; /* dividers, table rules */
+  --ink-100: #f2efe9; /* subtle fill, hover */
+  --ink-50: #faf8f5; /* page background */
+  --surface: #ffffff; /* cards, inputs */
+
+  /* Accent — deep green. The semantics of the product:
+     clearance to proceed. Not decoration. */
+  --accent-700: #16543a;
+  --accent-600: #1f6f4a; /* primary actions */
+  --accent-500: #2a8a5d;
+  --accent-300: #8fc7ac;
+  --accent-100: #e4f1ea;
+  --accent-50: #f2f9f5;
+  --on-accent: #ffffff;
+
+  /* Semantic — deliberately separate from the accent hue */
+  --warn-600: #a8620b;
+  --warn-100: #fbf0dc;
+  --danger-600: #a93226;
+  --danger-100: #fbeae7;
+  --info-600: #2c5d8a;
+  --info-100: #e8f0f7;
+
+  --focus: #2a8a5d;
+  --focus-ring: 0 0 0 3px rgb(42 138 93 / 0.22);
+
+  /* Elevation — three levels, two of them for overlays only.
+     Cards get a border and NO shadow. */
+  --shadow-sm: 0 1px 2px rgb(28 26 23 / 0.05);
+  --shadow-md:
+    0 4px 12px rgb(28 26 23 / 0.08), 0 1px 3px rgb(28 26 23 / 0.06);
+  --shadow-lg:
+    0 16px 40px rgb(28 26 23 / 0.14), 0 2px 8px rgb(28 26 23 / 0.06);
+
+  --backdrop: rgb(28 26 23 / 0.4);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
+/* ------------------------------------------------------------
+   2. COLOUR — dark
+   Three states, per docs/04:
+   - bare :root            → light (above)
+   - system dark, no stamp → this media block
+   - explicit stamp        → the [data-theme] block
+   The :not([data-theme="light"]) guard lets an explicit light
+   choice beat a dark OS.
+   ------------------------------------------------------------ */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    --ink-950: #f7f5f2;
+    --ink-900: #f0ede8;
+    --ink-700: #d2cdc5;
+    --ink-600: #ada79e;
+    --ink-500: #8e8880;
+    --ink-400: #6e6961;
+    --ink-300: #4a453e;
+    --ink-200: #332f2a;
+    --ink-150: #2a2622;
+    --ink-100: #232019;
+    --ink-50: #171512;
+    --surface: #1e1b17;
+
+    --accent-700: #2f8560;
+    --accent-600: #3d9e6e;
+    --accent-500: #4cb07e;
+    --accent-300: #2c6b4d;
+    --accent-100: #1b2e24;
+    --accent-50: #16211b;
+    --on-accent: #0d1a13;
+
+    --warn-600: #d99a4e;
+    --warn-100: #2e2417;
+    --danger-600: #e08578;
+    --danger-100: #2e1c19;
+    --info-600: #7fa9d1;
+    --info-100: #18232e;
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 12px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.6), 0 2px 8px rgb(0 0 0 / 0.4);
+
+    --backdrop: rgb(0 0 0 / 0.6);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+:root[data-theme="dark"] {
+  --ink-950: #f7f5f2;
+  --ink-900: #f0ede8;
+  --ink-700: #d2cdc5;
+  --ink-600: #ada79e;
+  --ink-500: #8e8880;
+  --ink-400: #6e6961;
+  --ink-300: #4a453e;
+  --ink-200: #332f2a;
+  --ink-150: #2a2622;
+  --ink-100: #232019;
+  --ink-50: #171512;
+  --surface: #1e1b17;
+
+  --accent-700: #2f8560;
+  --accent-600: #3d9e6e;
+  --accent-500: #4cb07e;
+  --accent-300: #2c6b4d;
+  --accent-100: #1b2e24;
+  --accent-50: #16211b;
+  --on-accent: #0d1a13;
+
+  --warn-600: #d99a4e;
+  --warn-100: #2e2417;
+  --danger-600: #e08578;
+  --danger-100: #2e1c19;
+  --info-600: #7fa9d1;
+  --info-100: #18232e;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.6), 0 2px 8px rgb(0 0 0 / 0.4);
+
+  --backdrop: rgb(0 0 0 / 0.6);
+}
+
+/* ------------------------------------------------------------
+   3. TYPE SCALE — app density (default)
+   The app is SCANNED. Dense and efficient.
+   ------------------------------------------------------------ */
+:root {
+  --fs-xs: 0.75rem;    --lh-xs: 1rem;      /* 12/16 */
+  --fs-sm: 0.8125rem;  --lh-sm: 1.125rem;  /* 13/18 */
+  --fs-base: 0.875rem; --lh-base: 1.25rem; /* 14/20 */
+  --fs-lg: 1rem;       --lh-lg: 1.5rem;    /* 16/24 */
+  --fs-xl: 1.125rem;   --lh-xl: 1.625rem;  /* 18/26 */
+  --fs-2xl: 1.375rem;  --lh-2xl: 1.875rem; /* 22/30 */
+  --fs-3xl: 1.75rem;   --lh-3xl: 2.25rem;  /* 28/36 */
+  --fs-4xl: 2.25rem;   --lh-4xl: 2.75rem;  /* 36/44 */
+  --fs-5xl: 3rem;      --lh-5xl: 3.5rem;   /* 48/56 */
+}
+
+/* ------------------------------------------------------------
+   4. PORTAL — the system's defining move.
+   The portal is READ, not scanned. Generous and calm.
+   Same tokens, larger scale, and permanently light: the portal
+   is a branded surface carrying the AGENCY's colour, and
+   honouring a viewer's dark preference on top of arbitrary
+   customer branding produces unreadable results.
+   Applying app density here would make it feel like software —
+   the exact failure mode to avoid.
+   ------------------------------------------------------------ */
+.portal {
+  --fs-xs: 0.8125rem;  --lh-xs: 1.125rem;  /* 13/18 */
+  --fs-sm: 0.9375rem;  --lh-sm: 1.5rem;    /* 15/24 */
+  --fs-base: 1.0625rem;--lh-base: 1.75rem; /* 17/28 */
+  --fs-lg: 1.1875rem;  --lh-lg: 1.875rem;  /* 19/30 */
+  --fs-xl: 1.375rem;   --lh-xl: 2rem;      /* 22/32 */
+  --fs-2xl: 1.75rem;   --lh-2xl: 2.25rem;  /* 28/36 */
+  --fs-3xl: 2.125rem;  --lh-3xl: 2.625rem; /* 34/42 */
+  --fs-4xl: 2.75rem;   --lh-4xl: 3.25rem;  /* 44/52 */
+
+  /* Force the light palette regardless of system or stamp. */
+  --ink-950: #12110f;
+  --ink-900: #1c1a17;
+  --ink-700: #3e3b36;
+  --ink-600: #57534c;
+  --ink-500: #78736b;
+  --ink-400: #9c968d;
+  --ink-300: #c4bfb6;
+  --ink-200: #dfdad1;
+  --ink-150: #eae6de;
+  --ink-100: #f2efe9;
+  --ink-50: #faf8f5;
+  --surface: #ffffff;
+  --on-accent: #ffffff;
+
+  --warn-600: #a8620b;   --warn-100: #fbf0dc;
+  --danger-600: #a93226; --danger-100: #fbeae7;
+  --info-600: #2c5d8a;   --info-100: #e8f0f7;
+
+  --shadow-sm: 0 1px 2px rgb(28 26 23 / 0.05);
+  --shadow-md: 0 4px 12px rgb(28 26 23 / 0.08), 0 1px 3px rgb(28 26 23 / 0.06);
+  --shadow-lg: 0 16px 40px rgb(28 26 23 / 0.14), 0 2px 8px rgb(28 26 23 / 0.06);
+
+  background: var(--ink-50);
+  color: var(--ink-900);
+}
+
+/* ------------------------------------------------------------
+   5. TAILWIND THEME MAPPING
+   `inline` + var() = utilities that resolve at RUNTIME, which
+   is what makes .portal and per-business accents work.
+   ------------------------------------------------------------ */
+@theme inline {
+  --color-ink-950: var(--ink-950);
+  --color-ink-900: var(--ink-900);
+  --color-ink-700: var(--ink-700);
+  --color-ink-600: var(--ink-600);
+  --color-ink-500: var(--ink-500);
+  --color-ink-400: var(--ink-400);
+  --color-ink-300: var(--ink-300);
+  --color-ink-200: var(--ink-200);
+  --color-ink-150: var(--ink-150);
+  --color-ink-100: var(--ink-100);
+  --color-ink-50: var(--ink-50);
+  --color-surface: var(--surface);
+
+  --color-accent-700: var(--accent-700);
+  --color-accent-600: var(--accent-600);
+  --color-accent-500: var(--accent-500);
+  --color-accent-300: var(--accent-300);
+  --color-accent-100: var(--accent-100);
+  --color-accent-50: var(--accent-50);
+  --color-on-accent: var(--on-accent);
+
+  --color-warn-600: var(--warn-600);
+  --color-warn-100: var(--warn-100);
+  --color-danger-600: var(--danger-600);
+  --color-danger-100: var(--danger-100);
+  --color-info-600: var(--info-600);
+  --color-info-100: var(--info-100);
+
+  --text-xs: var(--fs-xs);
+  --text-xs--line-height: var(--lh-xs);
+  --text-sm: var(--fs-sm);
+  --text-sm--line-height: var(--lh-sm);
+  --text-base: var(--fs-base);
+  --text-base--line-height: var(--lh-base);
+  --text-lg: var(--fs-lg);
+  --text-lg--line-height: var(--lh-lg);
+  --text-xl: var(--fs-xl);
+  --text-xl--line-height: var(--lh-xl);
+  --text-2xl: var(--fs-2xl);
+  --text-2xl--line-height: var(--lh-2xl);
+  --text-3xl: var(--fs-3xl);
+  --text-3xl--line-height: var(--lh-3xl);
+  --text-4xl: var(--fs-4xl);
+  --text-4xl--line-height: var(--lh-4xl);
+  --text-5xl: var(--fs-5xl);
+  --text-5xl--line-height: var(--lh-5xl);
+
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", monospace;
+
+  /* Radius — deliberately NOT uniform. Small things get small
+     radii; uniform rounding is what flattens a UI into looking
+     templated. */
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  --ease-out-quart: cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+/* ------------------------------------------------------------
+   6. MOTION
+   ------------------------------------------------------------ */
+:root {
+  --ease: cubic-bezier(0.2, 0, 0.2, 1);
+  --dur-fast: 120ms; /* hover, focus */
+  --dur: 180ms; /* dropdowns, toggles */
+  --dur-slow: 260ms; /* modals, slide-overs */
+}
+
+/* ------------------------------------------------------------
+   7. BASE
+   ------------------------------------------------------------ */
+@layer base {
+  * {
+    border-color: var(--ink-200);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* The viewer paints its own ground behind the page, so body
+     MUST set an explicit background or it borrows the host's. */
+  body {
+    background: var(--ink-50);
+    color: var(--ink-900);
+    font-family: var(--font-sans);
+    font-size: var(--fs-base);
+    line-height: var(--lh-base);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    text-wrap: balance;
+    letter-spacing: -0.011em;
+    color: var(--ink-900);
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Numerics that line up in columns must never dance. */
+  th, td, time, [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background: var(--accent-100);
+    color: var(--accent-700);
+  }
+
+  ::placeholder {
+    color: var(--ink-400);
+  }
+
+  /* Wide content scrolls inside its own container so the page
+     body never scrolls sideways. */
+  pre, table {
+    overflow-x: auto;
+  }
+}
+
+@layer utilities {
+  /* Uppercase label: xs, 500, tracked out. */
+  .label-caps {
+    font-size: var(--fs-xs);
+    line-height: var(--lh-xs);
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-500);
+  }
+
+  /* Reading measure. Body 68ch, portal prose 60ch. */
+  .measure { max-width: 68ch; }
+  .measure-prose { max-width: 60ch; }
+}
+
+/* ------------------------------------------------------------
+   8. REDUCED MOTION
+   Drop the three deliberate moments to opacity-only.
+   ------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

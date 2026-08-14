@@ -78,15 +78,17 @@ The business picks one accent for their portal. It replaces `--accent-600` only.
 ## 2. Typography
 
 **Faces**
-- **General Sans** (Fontshare, free) — UI and headings. Geometric-humanist, slightly warmer and more distinctive than Inter, professional without being generic.
+- **Plus Jakarta Sans** (Google Fonts, free) — UI and headings. Geometric-humanist, warm, distinctive at UI sizes without being eccentric. Pointedly not Inter.
 - **JetBrains Mono** — amounts, IDs, dates in tables. Only where digits must align.
 
-Self-host both. Subset to latin. `font-display: swap`.
+Both are loaded via `next/font/google`, which self-hosts at build time, subsets to latin, and generates size-adjusted fallback metrics so there is no layout shift. No font files in the repo, no external request at runtime.
 
 ```css
---font-sans: 'General Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
---font-mono: 'JetBrains Mono', ui-monospace, monospace;
+--font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+--font-mono: var(--font-jetbrains), ui-monospace, 'SFMono-Regular', monospace;
 ```
+
+*Originally specced as General Sans (Fontshare). Switched during Goal 1: Fontshare's CDN wasn't reachable from the build environment, and hand-managing woff2 binaries costs more than it buys. Plus Jakarta Sans is the closest match in character and `next/font` handles subsetting and fallback metrics automatically.*
 
 **Two scales — this is the system's key move.**
 
