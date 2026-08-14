@@ -10,16 +10,23 @@ The rule: **a feature is in v1 only if removing it breaks "send one link, watch 
 
 **Workflow builder** — one workflow per business at launch (named "New client onboarding"). Pick a template, toggle steps on/off, drag to reorder, edit step titles and fields. Steps may be left unconfigured and still send.
 
-**Step types** — exactly seven, no more:
+**Step types** — exactly eight, no more:
 | Type | Client does | Config |
 |---|---|---|
 | `info` | Fills name/company/email/phone/address | Which fields, which required |
 | `questionnaire` | Answers custom questions | Question list (text, long text, choice, multi) |
 | `files` | Uploads requested files | Requested items, each required or optional |
+| `checklist` | Confirms doing something in another system | Named items, instructions each, required or optional |
 | `agreement` | Reads and signs | Agreement text |
 | `payment` | Pays a fixed amount | Amount, currency, description |
 | `scheduling` | Books via embedded link | Cal.com / Calendly URL |
 | `instructions` | Reads (no input) | Rich text |
+
+**On `checklist`** — added after research, not in the original spec. Agency onboarding checklists universally name "request access" as its own step, and standalone companies (Leadsie, AgencyAccess, OneClick Onboard) exist solely to serve it. It doesn't fit `files` or `questionnaire`: the client acts in *another* system and reports back.
+
+Without it the marketing template is incomplete, and the agency sends a separate "now add us to your ad accounts" email — which is the sixth link the product exists to eliminate. It also feeds the waiting-on view, which can only say *"waiting on: Meta access"* if each item carries its own state.
+
+**Hard rule: `checklist` never collects credentials.** Accepting a client's platform password violates Meta's ToS and triggers account lockouts; correct practice is partner/role-based access granted on the client's own device. The step is instructions plus confirmation, never a password field. Agencies already using Leadsie paste that link into the item's instructions — we orchestrate, we don't rebuild.
 
 **Clients** — create (name, company, email), assign the workflow, generate link, view progress and every submission.
 

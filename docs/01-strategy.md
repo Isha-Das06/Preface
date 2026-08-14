@@ -135,15 +135,30 @@ Docs use **Preface**. Decide before the landing page — the name shapes the cop
 
 The defensible wedge is not features. It's **what you refuse to build.**
 
-| | HoneyBook | Dubsado | Bonsai | Preface |
-|---|---|---|---|---|
-| Promise | Run your business | Automate your workflows | Manage your business | Get your clients onboarded |
-| Time to first live client | Hours | Days | Hours | Under 10 minutes |
-| Requires client account | Yes | Yes | Yes | **No** |
-| Onboarding is the product | No | No | No | **Yes** |
-| Scope | Everything | Everything + logic | Everything + finance | One workflow |
+| | HoneyBook | Dubsado | Bonsai | Content Snare | Preface |
+|---|---|---|---|---|---|
+| Promise | Run your business | Automate your workflows | Manage your business | Collect docs from clients | Get your clients onboarded |
+| Time to first live client | Hours | Days | Hours | Under 1 hour | Under 10 minutes |
+| Requires client account | Yes | Yes | Yes | **No** | **No** |
+| Onboarding is the product | No | No | No | Partly | **Yes** |
+| E-signature | Yes | Yes | Yes | **No** | Yes |
+| Takes payment | Yes | Yes | Yes | **No** | Yes |
+| Scheduling | Yes | Yes | Yes | **No** | Yes (embed) |
+| Scope | Everything | Everything + logic | Everything + finance | Documents only | The signed→started arc |
 
-Note the matrix's honest row: on breadth, you lose to all three. That's the point, and saying it out loud is what makes the rest credible.
+Note the matrix's honest row: on breadth, you lose to the first three. That's the point, and saying it out loud is what makes the rest credible.
+
+### The competitor that actually matters: Content Snare
+
+Not in the original spec, and far closer to Preface than any all-in-one. Roughly $35/mo, templates for agencies/accounting/law, automatic reminders, a portal with no client account, per-item approve-and-reject. That is substantially this product.
+
+The decisive fact: **Content Snare has no e-signature at any tier and no payment processing.** It collects information and documents, then stops exactly where the commercial steps begin — so the business still needs a separate signing tool and a separate payment link, which is the fragmentation Preface exists to end.
+
+That sharpens the position rather than damaging it. The three all-in-ones are too broad; Content Snare is too narrow. The real claim is not "simpler than HoneyBook" but:
+
+> **The only tool that takes a new client all the way from signed to ready — including the contract and the deposit — in one link.**
+
+One capability of theirs is worth stealing eventually: per-item reject-and-request-again. Deliberately out of v1 (§6), because per-item review turns the product back into a back-and-forth tool. Revisit once real clients have uploaded real wrong things.
 
 **Real advantages, in order of defensibility:**
 1. **No client account.** Structural. The incumbents can't copy it without breaking their portal model — the portal is where their upsells live.

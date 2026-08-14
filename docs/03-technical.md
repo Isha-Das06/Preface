@@ -61,7 +61,7 @@ create table workflows (
 );
 
 create type step_type as enum (
-  'instructions','info','questionnaire','files',
+  'instructions','info','questionnaire','files','checklist',
   'agreement','payment','scheduling'
 );
 
