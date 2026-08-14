@@ -41,12 +41,21 @@ Warm neutrals (a red-yellow bias, not the usual cool grey) with a single deep gr
   --accent-50:  #F2F9F5;
 
   /* Semantic — distinct from accent */
-  --warn-600:   #A8620B;
+  --warn-600:   #8A5009;
   --warn-100:   #FBF0DC;
   --danger-600: #A93226;
   --danger-100: #FBEAE7;
   --info-600:   #2C5D8A;
   --info-100:   #E8F0F7;
+
+  /* Foreground for text on a -100 tint (badges). A separate token
+     because the dark ramp runs dark-to-light: on a dark tint the
+     text must get LIGHTER, so reusing -700 inverts the relationship
+     and silently drops to ~3.2:1. Measured, not assumed. */
+  --accent-fg:  #16543A;
+  --warn-fg:    #8A5009;
+  --danger-fg:  #96271C;
+  --info-fg:    #23527C;
 
   /* Focus */
   --focus: #2A8A5D;

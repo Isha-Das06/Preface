@@ -44,12 +44,21 @@
   --on-accent: #ffffff;
 
   /* Semantic — deliberately separate from the accent hue */
-  --warn-600: #a8620b;
+  --warn-600: #8a5009;
   --warn-100: #fbf0dc;
   --danger-600: #a93226;
   --danger-100: #fbeae7;
   --info-600: #2c5d8a;
   --info-100: #e8f0f7;
+
+  /* Foreground for text sitting on a -100 tint (badges).
+     A separate token because the dark ramp runs dark-to-light:
+     on a dark tint the text must get LIGHTER, so reusing -700
+     inverts the relationship and silently fails contrast. */
+  --accent-fg: #16543a;
+  --warn-fg: #8a5009;
+  --danger-fg: #96271c;
+  --info-fg: #23527c;
 
   --focus: #2a8a5d;
   --focus-ring: 0 0 0 3px rgb(42 138 93 / 0.22);
@@ -104,6 +113,11 @@
     --info-600: #7fa9d1;
     --info-100: #18232e;
 
+    --accent-fg: #6fc79a;
+    --warn-fg: #e0a862;
+    --danger-fg: #ef9c90;
+    --info-fg: #9cc0e0;
+
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
     --shadow-md: 0 4px 12px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.4);
     --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.6), 0 2px 8px rgb(0 0 0 / 0.4);
@@ -141,6 +155,11 @@
   --info-600: #7fa9d1;
   --info-100: #18232e;
 
+  --accent-fg: #6fc79a;
+  --warn-fg: #e0a862;
+  --danger-fg: #ef9c90;
+  --info-fg: #9cc0e0;
+
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-md: 0 4px 12px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.4);
   --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.6), 0 2px 8px rgb(0 0 0 / 0.4);
@@ -162,6 +181,13 @@
   --fs-3xl: 1.75rem;   --lh-3xl: 2.25rem;  /* 28/36 */
   --fs-4xl: 2.25rem;   --lh-4xl: 2.75rem;  /* 36/44 */
   --fs-5xl: 3rem;      --lh-5xl: 3.5rem;   /* 48/56 */
+
+  /* Default control height. The portal raises this to 44px, so a
+     plain <Button> or <Input> adapts to its context automatically
+     and no component has to know where it is. */
+  --control-h: 2.25rem; /* 36px */
+  --radius-card: 8px;
+  --card-pad: 1.25rem; /* 20px */
 }
 
 /* ------------------------------------------------------------
@@ -184,7 +210,15 @@
   --fs-3xl: 2.125rem;  --lh-3xl: 2.625rem; /* 34/42 */
   --fs-4xl: 2.75rem;   --lh-4xl: 3.25rem;  /* 44/52 */
 
-  /* Force the light palette regardless of system or stamp. */
+  /* Touch targets. Every control grows for thumbs. */
+  --control-h: 2.75rem; /* 44px */
+  --radius-card: 12px;
+  --card-pad: 2rem; /* 32px — the portal breathes */
+
+  /* Force the light palette regardless of system or stamp.
+     The ACCENT ramp must be pinned too, not just the neutrals:
+     the dark-mode green is tuned for a dark ground and drops to
+     ~2.6:1 against white, which fails on every primary button. */
   --ink-950: #12110f;
   --ink-900: #1c1a17;
   --ink-700: #3e3b36;
@@ -197,11 +231,27 @@
   --ink-100: #f2efe9;
   --ink-50: #faf8f5;
   --surface: #ffffff;
+
+  --accent-700: #16543a;
+  --accent-600: #1f6f4a;
+  --accent-500: #2a8a5d;
+  --accent-300: #8fc7ac;
+  --accent-100: #e4f1ea;
+  --accent-50: #f2f9f5;
   --on-accent: #ffffff;
 
-  --warn-600: #a8620b;   --warn-100: #fbf0dc;
+  --warn-600: #8a5009;   --warn-100: #fbf0dc;
   --danger-600: #a93226; --danger-100: #fbeae7;
   --info-600: #2c5d8a;   --info-100: #e8f0f7;
+
+  --accent-fg: #16543a;
+  --warn-fg: #8a5009;
+  --danger-fg: #96271c;
+  --info-fg: #23527c;
+
+  --focus: #2a8a5d;
+  --focus-ring: 0 0 0 3px rgb(42 138 93 / 0.22);
+  --backdrop: rgb(28 26 23 / 0.4);
 
   --shadow-sm: 0 1px 2px rgb(28 26 23 / 0.05);
   --shadow-md: 0 4px 12px rgb(28 26 23 / 0.08), 0 1px 3px rgb(28 26 23 / 0.06);
@@ -209,6 +259,10 @@
 
   background: var(--ink-50);
   color: var(--ink-900);
+  /* Apply the scale, don't just declare it — otherwise text with no
+     explicit text-* class keeps inheriting the app's 14px. */
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
 }
 
 /* ------------------------------------------------------------
@@ -244,6 +298,10 @@
   --color-danger-100: var(--danger-100);
   --color-info-600: var(--info-600);
   --color-info-100: var(--info-100);
+  --color-accent-fg: var(--accent-fg);
+  --color-warn-fg: var(--warn-fg);
+  --color-danger-fg: var(--danger-fg);
+  --color-info-fg: var(--info-fg);
 
   --text-xs: var(--fs-xs);
   --text-xs--line-height: var(--lh-xs);
@@ -356,7 +414,50 @@
   }
 }
 
+/* ------------------------------------------------------------
+   MOTION KEYFRAMES
+   Only opacity and transform are ever animated — never layout
+   properties. Applied via animate-[name_duration_easing].
+   ------------------------------------------------------------ */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes modal-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(4px) scale(0.98); }
+}
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes slide-out-right {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-2px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* Portal step transition: 180ms fade + 8px slide. */
+@keyframes step-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @layer utilities {
+  .animate-step-in {
+    animation: step-in var(--dur) var(--ease);
+  }
+
   /* Uppercase label: xs, 500, tracked out. */
   .label-caps {
     font-size: var(--fs-xs);
