@@ -27,6 +27,13 @@ const STEPS = [
 ];
 
 const TICK = 1250;
+/**
+ * A long rest on the completed state before restarting. Without it
+ * the loop snaps back every ~9s, and a perpetually twitching element
+ * in the hero competes with the CTA for attention — the eye is drawn
+ * to motion whether or not you want it there.
+ */
+const HOLD = 4200;
 
 export function HeroDemo() {
   const [done, setDone] = useState(0);
@@ -43,13 +50,21 @@ export function HeroDemo() {
     let timer: number | undefined;
     let visible = true;
 
+    let atEnd = false;
     const run = () => {
-      timer = window.setTimeout(() => {
-        if (visible) {
-          setDone((d) => (d >= STEPS.length ? 0 : d + 1));
-        }
-        run();
-      }, TICK);
+      timer = window.setTimeout(
+        () => {
+          if (visible) {
+            setDone((d) => {
+              const next = d >= STEPS.length ? 0 : d + 1;
+              atEnd = next >= STEPS.length;
+              return next;
+            });
+          }
+          run();
+        },
+        atEnd ? HOLD : TICK,
+      );
     };
 
     const io = new IntersectionObserver(

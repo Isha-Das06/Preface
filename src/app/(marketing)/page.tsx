@@ -192,6 +192,110 @@ export default function Landing() {
         </div>
       </Section>
 
+      {/* =========================== SETUP — THE BUSINESS SIDE
+          Restored after the redesign dropped it. The hero claims
+          "live in 10 minutes" and nothing on the page supported
+          that claim, which is exactly the objection a Dubsado
+          refugee arrives with. */}
+      <div className="border-t border-ink-150">
+        <Section>
+          <div className="flex flex-col gap-10">
+            <Reveal className="flex flex-col gap-3">
+              <Eyebrow>Your side</Eyebrow>
+              <h2 className="max-w-[22ch] text-3xl font-semibold tracking-[-0.01em] text-ink-900">
+                Set it up once. Ten minutes, not an afternoon.
+              </h2>
+              <p className="measure text-lg text-ink-600">
+                Built for agencies, studios and consultants who onboard clients
+                often enough that the chasing adds up.
+              </p>
+            </Reveal>
+
+            <ol className="grid gap-8 md:grid-cols-3">
+              {[
+                [
+                  "Pick a starting point",
+                  "Marketing agency, design studio, consulting — or start from scratch. The questions are already written.",
+                ],
+                [
+                  "Turn off what you don't need",
+                  "No deposit? Turn payment off. Contracts handled elsewhere? Turn signing off. Drag to reorder.",
+                ],
+                [
+                  "Add a client and send",
+                  "Name, company, email. You get a link. That's the whole onboarding.",
+                ],
+              ].map(([title, body], i) => (
+                <Reveal as="li" key={title} delay={i * 80}>
+                  <div className="flex min-w-0 flex-col gap-2">
+                    {/* Numbered because this is genuinely a sequence,
+                        not decoration. */}
+                    <span className="flex size-7 items-center justify-center rounded-full border border-ink-200 bg-surface text-sm font-medium text-ink-700">
+                      {i + 1}
+                    </span>
+                    <h3 className="mt-1 text-lg font-semibold text-ink-900">
+                      {title}
+                    </h3>
+                    <p className="text-base text-ink-600">{body}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </ol>
+
+            <Reveal delay={240}>
+              <div className="flex flex-col gap-4 rounded-lg border border-ink-200 bg-surface p-5">
+                <span className="label-caps">Your onboarding</span>
+                <ul className="flex flex-col gap-1.5">
+                  {[
+                    ["Welcome", true],
+                    ["Company information", true],
+                    ["Project questionnaire", true],
+                    ["Brand assets", true],
+                    ["Account access", true],
+                    ["Service agreement", true],
+                    ["Deposit", false],
+                    ["Kickoff call", true],
+                  ].map(([label, on]) => (
+                    <li
+                      key={label as string}
+                      className="flex items-center gap-2.5 text-sm"
+                    >
+                      <span
+                        className={cn(
+                          "flex size-4 shrink-0 items-center justify-center rounded-[4px] border",
+                          on
+                            ? "border-accent-600 bg-accent-600"
+                            : "border-ink-300 bg-surface",
+                        )}
+                      >
+                        {on && (
+                          <Check
+                            className="size-2.5 text-on-accent"
+                            strokeWidth={3.5}
+                          />
+                        )}
+                      </span>
+                      <span className={on ? "text-ink-900" : "text-ink-400"}>
+                        {label}
+                      </span>
+                      {!on && (
+                        <span className="text-xs text-ink-400">
+                          — off for this client
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-sm text-ink-500">
+                  Reorder, rename, turn off. No branching, no conditions,
+                  nothing to learn.
+                </p>
+              </div>
+            </Reveal>
+          </div>
+        </Section>
+      </div>
+
       {/* ================================= PRODUCT — BENTO */}
       <div className="border-t border-ink-150 bg-ink-100/30">
         <Section>
@@ -378,6 +482,69 @@ export default function Landing() {
         </div>
       </Section>
 
+      {/* ======================================== SECURITY
+          The product sits in the contract-and-deposit path for an
+          unknown vendor, which is the loudest unvoiced objection on
+          the page. Every claim here is literally true by design —
+          no SOC 2 or GDPR badge, because neither is earned yet, and
+          a fake compliance badge is worse than none. */}
+      <div className="border-t border-ink-150">
+        <Section>
+          <div className="flex flex-col gap-10">
+            <Reveal className="flex flex-col gap-3">
+              <Eyebrow>Where the money and the documents go</Eyebrow>
+              <h2 className="max-w-[22ch] text-3xl font-semibold tracking-[-0.01em] text-ink-900">
+                We never hold your money or your client's card.
+              </h2>
+            </Reveal>
+
+            <div className="grid gap-x-12 gap-y-7 md:grid-cols-2">
+              {[
+                [
+                  "Payments go straight to your Stripe",
+                  "Your account, your payout schedule. We never take a cut and never hold funds.",
+                ],
+                [
+                  "Card details never touch us",
+                  "They go directly to Stripe from your client's browser. We couldn't store them if we wanted to.",
+                ],
+                [
+                  "No client accounts means no client passwords",
+                  "There is no login to breach. Sensitive steps are gated behind a one-time code sent to their email.",
+                ],
+                [
+                  "Uploads are private by default",
+                  "Files are never publicly readable. Download links are signed and expire.",
+                ],
+                [
+                  "Signatures carry an audit trail",
+                  "Signer, email, timestamp, IP, and an immutable snapshot of the exact document shown.",
+                ],
+                [
+                  "Your data leaves when you do",
+                  "Export everything on cancellation. We keep it 30 days, then delete it.",
+                ],
+              ].map(([title, body], i) => (
+                <Reveal key={title} delay={i * 50}>
+                  <div className="flex min-w-0 items-start gap-3">
+                    <ShieldCheck
+                      className="mt-0.5 size-4 shrink-0 text-accent-600"
+                      strokeWidth={2}
+                    />
+                    <div className="flex flex-col gap-1">
+                      <h3 className="text-base font-medium text-ink-900">
+                        {title}
+                      </h3>
+                      <p className="text-sm text-ink-600">{body}</p>
+                    </div>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </Section>
+      </div>
+
       {/* ==================================== HONEST SCOPE */}
       <div className="border-t border-ink-150 bg-ink-100/30">
         <Section>
@@ -399,6 +566,70 @@ export default function Landing() {
           </Reveal>
         </Section>
       </div>
+
+      {/* ================================= PRICING PREVIEW
+          Publishing the actual number on the landing page shortens
+          the sales cycle and filters out unqualified traffic. A
+          "contact us for pricing" gap is friction, not mystery. */}
+      <Section>
+        <div className="flex flex-col gap-10">
+          <Reveal className="flex flex-col gap-3">
+            <Eyebrow>Pricing</Eyebrow>
+            <h2 className="text-3xl font-semibold tracking-[-0.01em] text-ink-900">
+              From $49 a month.
+            </h2>
+            <p className="measure text-lg text-ink-600">
+              Priced on how many onboardings are running at once. Completed ones
+              don't count and stay available forever.
+            </p>
+          </Reveal>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
+              ["Solo", "$49", "5 at a time"],
+              ["Studio", "$99", "25 at a time"],
+              ["Agency", "$199", "Unlimited"],
+            ].map(([name, price, active], i) => (
+              <Reveal key={name} delay={i * 60}>
+                <div
+                  className={cn(
+                    "flex h-full flex-col gap-1 rounded-lg border bg-surface p-5",
+                    "transition-colors duration-(--dur) hover:border-accent-300",
+                    name === "Studio" ? "border-accent-600" : "border-ink-200",
+                  )}
+                >
+                  <span className="text-sm font-medium text-ink-700">
+                    {name}
+                  </span>
+                  <span
+                    className="text-3xl font-semibold tracking-tight text-ink-900"
+                    data-numeric
+                  >
+                    {price}
+                    <span className="text-base font-normal text-ink-500">
+                      /mo
+                    </span>
+                  </span>
+                  <span className="text-sm text-ink-500">{active}</span>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+
+          <Reveal delay={200}>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-base text-ink-600">
+              <span>No transaction fees, ever.</span>
+              <Link
+                href="/pricing"
+                className="flex min-h-11 items-center gap-1.5 font-medium text-accent-600 underline decoration-accent-300 underline-offset-4 hover:decoration-accent-600"
+              >
+                Compare plans
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          </Reveal>
+        </div>
+      </Section>
 
       {/* =========================================== FAQ */}
       <Section>
