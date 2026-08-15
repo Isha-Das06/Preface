@@ -15,7 +15,7 @@ export default function FilesStep() {
         total={steps.length}
         title={step.title}
         description={step.description}
-        continueHref="/o/demo/agreement"
+        continueHref="/o/demo/access"
         footerNote="Up to 25 MB per file. If something is missing, you can continue and add it later."
       >
         <FileDropzone requests={fileRequests} />

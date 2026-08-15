@@ -14,6 +14,7 @@ export type StepType =
   | "info"
   | "questionnaire"
   | "files"
+  | "checklist"
   | "agreement"
   | "payment"
   | "scheduling";
@@ -77,6 +78,15 @@ export const steps: PortalStep[] = [
     description: "Upload what you have. Anything optional can wait.",
     status: "complete",
     meta: "1 optional item skipped",
+  },
+  {
+    slug: "access",
+    type: "checklist",
+    title: "Account access",
+    description:
+      "Add us to the accounts we'll be working in. Each one takes about a minute.",
+    status: "complete",
+    meta: "3 of 4 granted",
   },
   {
     slug: "agreement",
@@ -196,6 +206,50 @@ export const fileRequests = [
     hint: "So we don't repeat what's already been tried",
     required: false,
     uploaded: { name: "q2-campaign-assets.zip", size: "18.6 MB" },
+  },
+];
+
+/**
+ * Checklist items — things the client does in ANOTHER system and
+ * confirms here.
+ *
+ * Note there is no credential field anywhere in this shape, by
+ * design: accepting a client's platform password violates Meta's
+ * terms and gets accounts locked. We ask them to grant role-based
+ * access on their own device and tick the box.
+ */
+export const checklistItems = [
+  {
+    key: "google-ads",
+    label: "Google Ads",
+    instruction:
+      "Tools & Settings → Access and security → invite ads@acmeagency.co as Standard.",
+    required: true,
+    done: true,
+  },
+  {
+    key: "ga4",
+    label: "Google Analytics 4",
+    instruction:
+      "Admin → Property access management → add ads@acmeagency.co as Editor.",
+    required: true,
+    done: true,
+  },
+  {
+    key: "meta",
+    label: "Meta Business Manager",
+    instruction:
+      "Business Settings → Partners → Add partner → enter our ID 402 998 117 431.",
+    required: true,
+    done: true,
+  },
+  {
+    key: "shopify",
+    label: "Shopify",
+    instruction:
+      "Settings → Users and permissions → invite ads@acmeagency.co with Reports access.",
+    required: false,
+    done: false,
   },
 ];
 
