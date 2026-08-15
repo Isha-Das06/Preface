@@ -266,6 +266,31 @@
 }
 
 /* ------------------------------------------------------------
+   4b. MARKETING — the third density.
+   Read like the portal, but unlike the portal it keeps both
+   themes: marketing pages carry OUR brand, not a customer's, so
+   there is no arbitrary accent to protect against.
+   ------------------------------------------------------------ */
+.marketing {
+  --fs-xs: 0.8125rem;  --lh-xs: 1.125rem;  /* 13/18 */
+  --fs-sm: 0.9375rem;  --lh-sm: 1.5rem;    /* 15/24 */
+  --fs-base: 1.0625rem;--lh-base: 1.75rem; /* 17/28 */
+  --fs-lg: 1.1875rem;  --lh-lg: 1.875rem;  /* 19/30 */
+  --fs-xl: 1.375rem;   --lh-xl: 2rem;      /* 22/32 */
+  --fs-2xl: 1.75rem;   --lh-2xl: 2.25rem;  /* 28/36 */
+  --fs-3xl: 2.25rem;   --lh-3xl: 2.75rem;  /* 36/44 */
+  --fs-4xl: 3rem;      --lh-4xl: 3.5rem;   /* 48/56 */
+  --fs-5xl: 3.75rem;   --lh-5xl: 4rem;     /* 60/64 */
+
+  --control-h: 2.75rem;
+  --radius-card: 12px;
+  --card-pad: 1.75rem;
+
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* ------------------------------------------------------------
    5. TAILWIND THEME MAPPING
    `inline` + var() = utilities that resolve at RUNTIME, which
    is what makes .portal and per-business accents work.
