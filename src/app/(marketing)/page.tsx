@@ -1,342 +1,416 @@
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
-import { Button, Card, CardBody } from "@/components/ui";
+import { ArrowRight, Check, Clock, Send, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui";
+import { Reveal } from "@/components/marketing/reveal";
+import { HeroDemo } from "@/components/marketing/hero-demo";
+import { cn } from "@/lib/utils";
 
 /**
- * M1 — Landing page. Copy verbatim from docs/05-copy.md.
+ * M1 — Landing page.
  *
- * The hero shows the real C1 portal screen rather than an
- * illustration, and the message-thread section does the actual
- * selling — the reader recognises their own week in it.
+ * Structure follows the six-section skeleton that maps to how a
+ * skeptical buyer evaluates software: hero → proof → problem →
+ * product → evidence → close. See docs/08-visual-plan.md.
  */
 
 function Section({
   children,
   className,
+  bleed = false,
 }: {
   children: React.ReactNode;
   className?: string;
+  bleed?: boolean;
 }) {
   return (
     <section
-      className={`mx-auto w-full max-w-[1100px] px-5 py-16 sm:py-20 ${className ?? ""}`}
+      className={cn(
+        "mx-auto w-full max-w-[1100px] px-5",
+        bleed ? "py-0" : "py-16 sm:py-24",
+        className,
+      )}
     >
       {children}
     </section>
   );
 }
 
-/** The real C1 screen, at portal density, in a phone frame. */
-function PortalPreview() {
-  const steps = [
-    { title: "Company information", done: true },
-    { title: "Project questionnaire", done: true },
-    { title: "Brand assets", done: true },
-    { title: "Account access", done: true },
-    { title: "Service agreement", done: false, current: true },
-    { title: "Deposit", done: false },
-  ];
-
-  return (
-    <div className="portal mx-auto w-full max-w-[320px] rounded-[28px] border border-ink-200 bg-ink-50 p-3 shadow-md">
-      <div className="flex flex-col gap-5 rounded-[18px] bg-surface p-5">
-        <div className="flex items-center gap-2.5">
-          <span className="flex size-7 items-center justify-center rounded-md bg-accent-600 text-[11px] font-semibold text-on-accent">
-            AA
-          </span>
-          <span className="text-sm font-medium text-ink-900">Acme Agency</span>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <p className="text-xl font-semibold text-ink-900">Welcome back</p>
-          <p className="text-xs text-ink-500">
-            <span data-numeric>4</span> of <span data-numeric>6</span> complete
-          </p>
-        </div>
-
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-ink-150">
-          <div className="h-full w-[67%] rounded-full bg-accent-600" />
-        </div>
-
-        <ul className="flex flex-col gap-2.5">
-          {steps.map((s) => (
-            <li key={s.title} className="flex items-center gap-2.5">
-              <span
-                className={`flex size-5 shrink-0 items-center justify-center rounded-full border ${
-                  s.done
-                    ? "border-accent-600 bg-accent-600"
-                    : s.current
-                      ? "border-accent-600 bg-surface"
-                      : "border-ink-200 bg-surface"
-                }`}
-              >
-                {s.done && (
-                  <Check className="size-3 text-on-accent" strokeWidth={3} />
-                )}
-                {s.current && (
-                  <span className="size-1.5 rounded-full bg-accent-600" />
-                )}
-              </span>
-              <span
-                className={`text-xs ${
-                  s.done
-                    ? "text-ink-500"
-                    : s.current
-                      ? "font-medium text-ink-900"
-                      : "text-ink-500"
-                }`}
-              >
-                {s.title}
-              </span>
-            </li>
-          ))}
-        </ul>
-
-        <span className="flex h-10 items-center justify-center rounded-[6px] bg-accent-600 text-xs font-medium text-on-accent">
-          Continue — Service agreement
-        </span>
-      </div>
-    </div>
-  );
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return <span className="label-caps">{children}</span>;
 }
 
+/* ------------------------------------------------------------------ */
+
 const THREAD = [
-  ["Mon", "Here's a form to fill in.", true],
-  ["Mon", "And here's a Drive folder for your logo.", true],
-  ["Tue", "Sending the contract over now.", true],
-  ["Wed", "Did the contract come through?", true],
-  ["Thu", "Just need the deposit and we're set.", true],
-  ["Fri", "Can you book a time here?", true],
-  ["Mon", "Sorry to chase again —", true],
+  ["Mon", "Here's a form to fill in."],
+  ["Mon", "And here's a Drive folder for your logo."],
+  ["Tue", "Sending the contract over now."],
+  ["Wed", "Did the contract come through?"],
+  ["Thu", "Just need the deposit and we're set."],
+  ["Fri", "Can you book a time here?"],
+  ["Mon", "Sorry to chase again —"],
 ] as const;
+
+const REPLACES = [
+  "Google Forms",
+  "Drive folder",
+  "DocuSign",
+  "Stripe link",
+  "Calendly",
+  "A tracking spreadsheet",
+];
 
 export default function Landing() {
   return (
     <>
-      {/* ---------------------------------------------- Hero */}
-      <Section className="!py-14 sm:!py-20">
-        <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_auto]">
+      {/* ============================================ HERO */}
+      <Section className="!pt-12 !pb-16 sm:!pt-16">
+        <div className="grid items-center gap-14 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-16">
           <div className="flex min-w-0 flex-col gap-6">
-            <h1 className="max-w-[16ch] text-4xl font-semibold tracking-tight text-ink-900 sm:text-5xl">
-              Stop sending new clients five different links.
-            </h1>
-            <p className="measure text-lg text-ink-600">
-              One link collects everything you need before work starts —
-              information, files, contract, deposit, kickoff call. You watch it
-              fill in.
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Button asChild variant="primary" size="lg">
-                <Link href="/signup">
-                  Create your first onboarding
-                  <ArrowRight className="size-4" />
+            <Reveal>
+              <h1 className="max-w-[15ch] text-4xl font-semibold tracking-[-0.02em] text-ink-900 sm:text-5xl">
+                Stop sending new clients five different links.
+              </h1>
+            </Reveal>
+
+            <Reveal delay={80}>
+              <p className="measure text-lg text-ink-600">
+                One link collects everything you need before work starts —
+                information, files, contract, deposit, kickoff call. You watch
+                it fill in.
+              </p>
+            </Reveal>
+
+            <Reveal delay={160}>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                {/* One decision above the fold. The secondary is a
+                    link, not a competing button. */}
+                <Button asChild variant="primary" size="lg">
+                  <Link href="/signup">
+                    Create your first onboarding
+                    <ArrowRight className="size-4 transition-transform duration-(--dur-fast) group-hover:translate-x-0.5 motion-reduce:transition-none" />
+                  </Link>
+                </Button>
+                <Link
+                  href="/o/demo"
+                  className="flex min-h-11 items-center gap-1.5 rounded-md px-1 text-base font-medium text-ink-700 underline decoration-ink-300 underline-offset-4 transition-colors hover:text-accent-600 hover:decoration-accent-600"
+                >
+                  See what your client sees
+                  <ArrowRight className="size-3.5" />
                 </Link>
-              </Button>
-              <Button asChild size="lg">
-                <Link href="/o/demo">See a live example</Link>
-              </Button>
-            </div>
-            <p className="text-sm text-ink-500">
-              Free for 14 days. No card required.
-            </p>
+              </div>
+            </Reveal>
+
+            <Reveal delay={220}>
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ink-500">
+                <span className="flex items-center gap-1.5">
+                  <Check className="size-4 text-accent-600" strokeWidth={2.5} />
+                  Free for 14 days
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Check className="size-4 text-accent-600" strokeWidth={2.5} />
+                  No card required
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Check className="size-4 text-accent-600" strokeWidth={2.5} />
+                  Live in 10 minutes
+                </span>
+              </div>
+            </Reveal>
           </div>
 
-          <PortalPreview />
+          <Reveal delay={120}>
+            <HeroDemo />
+          </Reveal>
         </div>
       </Section>
 
-      {/* ------------------------------- The recognition moment */}
-      <Section className="border-t border-ink-150">
-        <div className="flex flex-col gap-8">
-          <h2 className="text-3xl font-semibold text-ink-900">
-            You already know this week.
-          </h2>
-
-          <ol className="flex max-w-[560px] flex-col gap-2.5">
-            {THREAD.map(([day, text], i) => (
-              <li key={i} className="flex items-start gap-3">
-                <span className="w-9 shrink-0 pt-2 text-xs text-ink-400">
-                  {day}
-                </span>
-                <span className="rounded-[14px] rounded-tl-[4px] border border-ink-200 bg-surface px-4 py-2.5 text-base text-ink-700">
-                  {text}
-                </span>
-              </li>
-            ))}
-          </ol>
-
-          <p className="text-xl font-medium text-ink-900">
-            Nine days. Nothing started.
-          </p>
-        </div>
-      </Section>
-
-      {/* ------------------------------------- Before / after */}
-      <Section className="border-t border-ink-150">
-        <div className="flex flex-col gap-8">
-          <h2 className="text-3xl font-semibold text-ink-900">
-            One link instead of six.
-          </h2>
-
-          <div className="grid items-start gap-6 md:grid-cols-2">
-            <div className="flex flex-col gap-3">
-              <span className="label-caps">Today</span>
-              <ul className="flex flex-col gap-2">
-                {[
-                  "Google Form",
-                  "Drive folder",
-                  "DocuSign",
-                  "Stripe link",
-                  "Calendly",
-                  "A spreadsheet tracking who did what",
-                ].map((t) => (
+      {/* ==================================== PROOF STRIP
+          Deliberately NOT a fabricated customer count or fake
+          logos. Everything here is literally true today. Replace
+          with a real number and real names the moment you have
+          them — that is where the conversion lift actually is. */}
+      <div className="border-y border-ink-150 bg-ink-100/40">
+        <Section className="!py-7">
+          <Reveal>
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-8">
+              <span className="label-caps shrink-0">Replaces</span>
+              <ul className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                {REPLACES.map((t) => (
                   <li
                     key={t}
-                    className="rounded-md border border-dashed border-ink-300 px-4 py-2.5 text-base text-ink-600"
+                    className="text-base text-ink-500 line-through decoration-ink-300"
                   >
                     {t}
                   </li>
                 ))}
               </ul>
             </div>
+          </Reveal>
+        </Section>
+      </div>
 
-            <div className="flex flex-col gap-3">
-              <span className="label-caps">With Preface</span>
-              <div className="rounded-md border border-accent-600 bg-accent-50 px-4 py-5">
-                <p className="text-lg font-medium text-ink-900">One link</p>
-                <p className="mt-1 text-base text-ink-600">
-                  Your client opens one page and works through a short
-                  checklist. You see exactly where they are.
+      {/* ========================================= PROBLEM */}
+      <Section>
+        <div className="flex flex-col gap-10">
+          <Reveal className="flex flex-col gap-3">
+            <Eyebrow>The week after they say yes</Eyebrow>
+            <h2 className="text-3xl font-semibold tracking-[-0.01em] text-ink-900">
+              You already know this week.
+            </h2>
+          </Reveal>
+
+          <ol className="flex max-w-[540px] flex-col gap-2.5">
+            {THREAD.map(([day, text], i) => (
+              // Staggered so the reader feels the drag of the chase
+              // rather than just reading about it.
+              <Reveal as="li" key={i} delay={i * 90}>
+                <div className="flex items-start gap-3">
+                  <span className="w-9 shrink-0 pt-2.5 text-xs text-ink-400">
+                    {day}
+                  </span>
+                  <span
+                    className={cn(
+                      "rounded-[16px] rounded-tl-[5px] border px-4 py-2.5 text-base",
+                      i === THREAD.length - 1
+                        ? "border-warn-600/30 bg-warn-100 text-warn-fg"
+                        : "border-ink-200 bg-surface text-ink-700",
+                    )}
+                  >
+                    {text}
+                  </span>
+                </div>
+              </Reveal>
+            ))}
+          </ol>
+
+          <Reveal delay={THREAD.length * 90}>
+            <p className="text-2xl font-medium tracking-[-0.01em] text-ink-900">
+              Nine days. Nothing started.
+            </p>
+          </Reveal>
+        </div>
+      </Section>
+
+      {/* ================================= PRODUCT — BENTO */}
+      <div className="border-t border-ink-150 bg-ink-100/30">
+        <Section>
+          <div className="flex flex-col gap-10">
+            <Reveal className="flex flex-col gap-3">
+              <Eyebrow>What you get</Eyebrow>
+              <h2 className="max-w-[20ch] text-3xl font-semibold tracking-[-0.01em] text-ink-900">
+                One link out. Everything back.
+              </h2>
+            </Reveal>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {/* Wide tile — the business side finally appears. */}
+              <Reveal className="md:col-span-2">
+                <BentoTile
+                  title="Always know what you're waiting on"
+                  body="The home screen answers one question: who hasn't finished, and what's missing."
+                  className="h-full"
+                >
+                  <div className="flex flex-col gap-2.5">
+                    {[
+                      ["Northstar Labs", "Service agreement", "6 days"],
+                      ["Vertex Health", "Brand assets", "2 days"],
+                      ["Atlas Digital", "Deposit", "4 hours"],
+                    ].map(([name, on, when]) => (
+                      <div
+                        key={name}
+                        className="flex items-center justify-between gap-3 rounded-md border border-ink-200 bg-surface px-3.5 py-2.5"
+                      >
+                        <div className="flex min-w-0 flex-col">
+                          <span className="truncate text-sm font-medium text-ink-900">
+                            {name}
+                          </span>
+                          <span className="truncate text-xs text-ink-500">
+                            Waiting on {on}
+                          </span>
+                        </div>
+                        <span className="shrink-0 text-xs text-ink-400">
+                          {when}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </BentoTile>
+              </Reveal>
+
+              <Reveal delay={80}>
+                <BentoTile
+                  title="Reminders send themselves"
+                  body="Two days, five days, then it stops. Nobody gets nagged forever."
+                  className="h-full"
+                >
+                  <div className="flex flex-col gap-2 rounded-md border border-ink-200 bg-surface p-3.5">
+                    <div className="flex items-center gap-2">
+                      <Send className="size-3.5 text-accent-600" />
+                      <span className="text-xs font-medium text-ink-900">
+                        Two things left for your project
+                      </span>
+                    </div>
+                    <p className="text-xs leading-relaxed text-ink-500">
+                      You're most of the way there — four of six done. Still to
+                      go: the service agreement and the deposit.
+                    </p>
+                  </div>
+                </BentoTile>
+              </Reveal>
+
+              <Reveal delay={40}>
+                <BentoTile
+                  title="No account for your client"
+                  body="No password, no app, no verify-your-email wall. They tap the link and start."
+                  className="h-full"
+                  icon={ShieldCheck}
+                />
+              </Reveal>
+
+              <Reveal delay={80}>
+                <BentoTile
+                  title="Ready-made questions"
+                  body="Marketing, design, consulting. Real questions already written — change anything."
+                  className="h-full"
+                >
+                  <div className="flex flex-col gap-1.5">
+                    {[
+                      "What does success look like in 90 days?",
+                      "Who has final approval on creative?",
+                    ].map((q) => (
+                      <span
+                        key={q}
+                        className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-xs text-ink-600"
+                      >
+                        {q}
+                      </span>
+                    ))}
+                  </div>
+                </BentoTile>
+              </Reveal>
+
+              <Reveal delay={120}>
+                <BentoTile
+                  title="One email when it's done"
+                  body="Every answer, the files zipped, the signed contract, the receipt, the kickoff time."
+                  className="h-full"
+                  icon={Clock}
+                />
+              </Reveal>
+            </div>
+          </div>
+        </Section>
+      </div>
+
+      {/* ================================== MID-PAGE CTA
+          The page previously asked once at the top and once at the
+          bottom, and never at the point where conviction peaks. */}
+      <div className="border-y border-ink-150">
+        <Section className="!py-12">
+          <Reveal>
+            <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
+              <p className="text-xl font-medium tracking-[-0.01em] text-ink-900">
+                How many links do you send a new client?
+              </p>
+              <Button asChild variant="primary" size="lg">
+                <Link href="/signup">
+                  Replace them with one
+                  <ArrowRight className="size-4 transition-transform duration-(--dur-fast) group-hover:translate-x-0.5 motion-reduce:transition-none" />
+                </Link>
+              </Button>
+            </div>
+          </Reveal>
+        </Section>
+      </div>
+
+      {/* ================================= CLIENT EXPERIENCE */}
+      <Section>
+        <div className="grid items-center gap-12 md:grid-cols-2">
+          <Reveal className="flex flex-col gap-4">
+            <Eyebrow>Their side</Eyebrow>
+            <h2 className="text-3xl font-semibold tracking-[-0.01em] text-ink-900">
+              It looks like you, not like software.
+            </h2>
+            <p className="text-lg text-ink-600">
+              Your logo, your colour, your name. They tap the link, see what's
+              needed, and work through it — on their phone, over a few days if
+              that's how it goes.
+            </p>
+            <p className="text-lg text-ink-600">
+              It saves as they type. They never make an account.
+            </p>
+            <Link
+              href="/o/demo"
+              className="flex w-fit min-h-11 items-center gap-1.5 rounded-md text-base font-medium text-accent-600 underline decoration-accent-300 underline-offset-4 hover:decoration-accent-600"
+            >
+              Open a live example
+              <ArrowRight className="size-3.5" />
+            </Link>
+          </Reveal>
+
+          <Reveal delay={80}>
+            <div className="portal mx-auto w-full max-w-[300px] rounded-[22px] border border-ink-200 bg-surface p-6">
+              <div className="flex flex-col gap-4">
+                <span className="text-xs text-ink-500">Step 5 of 6</span>
+                <p className="text-xl font-semibold text-ink-900">Deposit</p>
+                <div className="flex flex-col gap-1 rounded-md border border-ink-200 p-4">
+                  <span className="label-caps">Amount due</span>
+                  <span
+                    className="text-3xl font-semibold tracking-tight text-ink-900"
+                    data-numeric
+                  >
+                    $2,500.00
+                  </span>
+                  <span className="text-xs text-ink-500">
+                    Project deposit · 50% of the first month
+                  </span>
+                </div>
+                <span className="flex h-11 items-center justify-center rounded-[6px] bg-accent-600 text-sm font-medium text-on-accent">
+                  Pay $2,500.00
+                </span>
+                <p className="text-xs text-ink-500">
+                  Paid straight to Acme Agency. We never touch the money.
                 </p>
               </div>
             </div>
-          </div>
+          </Reveal>
         </div>
       </Section>
 
-      {/* --------------------------------------- How it works */}
-      <Section className="border-t border-ink-150">
-        <div className="flex flex-col gap-8">
-          <h2 className="text-3xl font-semibold text-ink-900">
-            Three steps. About ten minutes.
-          </h2>
-
-          <ol className="grid gap-6 md:grid-cols-3">
-            {[
-              [
-                "Pick a starting point",
-                "Marketing agency, design studio, consulting — or start from scratch. Real questions already written. Change anything.",
-              ],
-              [
-                "Add a client",
-                "Name, company, email. You get a link.",
-              ],
-              [
-                "Send it",
-                "They fill it in. You get a message when everything's done — answers, files, signed contract, deposit, kickoff time. All in one place.",
-              ],
-            ].map(([title, body], i) => (
-              <li key={title} className="flex min-w-0 flex-col gap-2">
-                {/* Numbered because this genuinely is a sequence. */}
-                <span className="flex size-7 items-center justify-center rounded-full bg-ink-100 text-sm font-medium text-ink-700">
-                  {i + 1}
-                </span>
-                <h3 className="text-lg font-semibold text-ink-900">{title}</h3>
-                <p className="text-base text-ink-600">{body}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </Section>
-
-      {/* ------------------------------------- Waiting-on view */}
-      <Section className="border-t border-ink-150">
-        <div className="grid items-center gap-10 md:grid-cols-2">
-          <div className="flex flex-col gap-4">
-            <h2 className="text-3xl font-semibold text-ink-900">
-              Always know what you're waiting on.
+      {/* ==================================== HONEST SCOPE */}
+      <div className="border-t border-ink-150 bg-ink-100/30">
+        <Section>
+          <Reveal className="flex max-w-[640px] flex-col gap-4">
+            <Eyebrow>What it isn't</Eyebrow>
+            <h2 className="text-3xl font-semibold tracking-[-0.01em] text-ink-900">
+              It does one thing.
             </h2>
             <p className="text-lg text-ink-600">
-              The home screen answers one question: who hasn't finished, and
-              what's missing?
+              Preface isn't a CRM. It doesn't invoice, track time, or manage
+              projects. If you want software that runs your whole business, buy
+              HoneyBook — it's good.
             </p>
             <p className="text-lg text-ink-600">
-              If someone stalls, we send the reminder. Not you.
+              This is for the part between "yes, let's do it" and "we've
+              started." That part is currently held together with email, and it
+              shouldn't be.
             </p>
-          </div>
+          </Reveal>
+        </Section>
+      </div>
 
-          <Card>
-            <CardBody className="flex flex-col gap-4">
-              {[
-                ["Northstar Labs", "Service agreement", "6 days"],
-                ["Vertex Health", "Brand assets", "2 days"],
-                ["Atlas Digital", "Deposit", "4 hours"],
-              ].map(([name, on, when]) => (
-                <div
-                  key={name}
-                  className="flex items-baseline justify-between gap-3 border-b border-ink-150 pb-3 last:border-0 last:pb-0"
-                >
-                  <div className="flex min-w-0 flex-col">
-                    <span className="truncate text-base font-medium text-ink-900">
-                      {name}
-                    </span>
-                    <span className="truncate text-sm text-ink-500">
-                      Waiting on {on}
-                    </span>
-                  </div>
-                  <span className="shrink-0 text-sm text-ink-400">{when}</span>
-                </div>
-              ))}
-            </CardBody>
-          </Card>
-        </div>
-      </Section>
+      {/* =========================================== FAQ */}
+      <Section>
+        <div className="flex flex-col gap-10">
+          <Reveal className="flex flex-col gap-3">
+            <Eyebrow>Before you ask</Eyebrow>
+            <h2 className="text-3xl font-semibold tracking-[-0.01em] text-ink-900">
+              Questions people ask.
+            </h2>
+          </Reveal>
 
-      {/* ------------------------------------- The client side */}
-      <Section className="border-t border-ink-150">
-        <div className="flex max-w-[640px] flex-col gap-4">
-          <h2 className="text-3xl font-semibold text-ink-900">
-            Your client never makes an account.
-          </h2>
-          <p className="text-lg text-ink-600">
-            No password. No app. No "verify your email to continue."
-          </p>
-          <p className="text-lg text-ink-600">
-            They tap the link, see what's needed, and work through it — on their
-            phone, over a few days if that's how it goes. It saves as they go.
-          </p>
-          <p className="text-lg text-ink-600">
-            It carries your logo and your name. It looks like you.
-          </p>
-        </div>
-      </Section>
-
-      {/* --------------------------------------- Honest scope */}
-      <Section className="border-t border-ink-150">
-        <div className="flex max-w-[640px] flex-col gap-4">
-          <h2 className="text-3xl font-semibold text-ink-900">
-            It does one thing.
-          </h2>
-          <p className="text-lg text-ink-600">
-            Preface isn't a CRM. It doesn't invoice, track time, or manage
-            projects. If you want software that runs your whole business, buy
-            HoneyBook — it's good.
-          </p>
-          <p className="text-lg text-ink-600">
-            This is for the part between "yes, let's do it" and "we've started."
-            That part is currently held together with email, and it shouldn't
-            be.
-          </p>
-        </div>
-      </Section>
-
-      {/* ----------------------------------------- Objections */}
-      <Section className="border-t border-ink-150">
-        <div className="flex flex-col gap-8">
-          <h2 className="text-3xl font-semibold text-ink-900">
-            Questions people ask.
-          </h2>
-          <dl className="grid gap-x-10 gap-y-7 md:grid-cols-2">
+          <dl className="grid gap-x-12 gap-y-8 md:grid-cols-2">
             {[
               [
                 "Do I need to move my tools over?",
@@ -354,33 +428,77 @@ export default function Landing() {
                 "What happens when someone doesn't finish?",
                 "We remind them at two days and five days, then stop. You can send one manually any time. Nobody gets nagged forever.",
               ],
-            ].map(([q, a]) => (
-              <div key={q} className="flex min-w-0 flex-col gap-1.5">
-                <dt className="text-lg font-medium text-ink-900">{q}</dt>
-                <dd className="text-base text-ink-600">{a}</dd>
-              </div>
+            ].map(([q, a], i) => (
+              <Reveal key={q} delay={i * 60}>
+                <div className="flex min-w-0 flex-col gap-1.5">
+                  <dt className="text-lg font-medium text-ink-900">{q}</dt>
+                  <dd className="text-base text-ink-600">{a}</dd>
+                </div>
+              </Reveal>
             ))}
           </dl>
         </div>
       </Section>
 
-      {/* ------------------------------------------ Final CTA */}
-      <Section className="border-t border-ink-150">
-        <div className="flex flex-col items-start gap-5">
-          <h2 className="text-3xl font-semibold text-ink-900">
-            Send your first onboarding link today.
-          </h2>
-          <p className="text-lg text-ink-600">
-            Set it up in ten minutes. Free for 14 days, no card.
-          </p>
-          <Button asChild variant="primary" size="lg">
-            <Link href="/signup">
-              Create your first onboarding
-              <ArrowRight className="size-4" />
-            </Link>
-          </Button>
-        </div>
-      </Section>
+      {/* ========================================== CLOSE */}
+      <div className="border-t border-ink-150">
+        <Section>
+          <Reveal className="flex flex-col items-start gap-6">
+            <h2 className="max-w-[18ch] text-4xl font-semibold tracking-[-0.02em] text-ink-900">
+              Send your first onboarding link today.
+            </h2>
+            <p className="text-lg text-ink-600">
+              Set it up in ten minutes. Free for 14 days, no card.
+            </p>
+            <Button asChild variant="primary" size="lg">
+              <Link href="/signup">
+                Create your first onboarding
+                <ArrowRight className="size-4 transition-transform duration-(--dur-fast) group-hover:translate-x-0.5 motion-reduce:transition-none" />
+              </Link>
+            </Button>
+          </Reveal>
+        </Section>
+      </div>
     </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+function BentoTile({
+  title,
+  body,
+  children,
+  icon: Icon,
+  className,
+}: {
+  title: string;
+  body: string;
+  children?: React.ReactNode;
+  icon?: typeof ShieldCheck;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "group flex flex-col gap-4 rounded-lg border border-ink-200 bg-ink-50 p-5",
+        // Moment 5 — the border warms on hover. Signals the tile is
+        // a thing, without a shadow or a lift.
+        "transition-colors duration-(--dur) hover:border-accent-300",
+        className,
+      )}
+    >
+      <div className="flex flex-col gap-1.5">
+        {Icon && (
+          <Icon
+            className="mb-1 size-5 text-accent-600"
+            strokeWidth={1.75}
+          />
+        )}
+        <h3 className="text-base font-semibold text-ink-900">{title}</h3>
+        <p className="text-sm text-ink-600">{body}</p>
+      </div>
+      {children}
+    </div>
   );
 }

@@ -62,7 +62,10 @@ export function Button({
   ...props
 }: ButtonProps) {
   const classes = cn(
-    "relative inline-flex shrink-0 items-center justify-center gap-2 rounded-[6px]",
+    // `group` lets callers animate an icon inside on hover — the
+    // design system forbids transforming the button itself, so a
+    // nudging arrow is how a CTA signals forward motion.
+    "group relative inline-flex shrink-0 items-center justify-center gap-2 rounded-[6px]",
     "font-medium whitespace-nowrap select-none",
     "transition-colors duration-(--dur-fast) ease-(--ease)",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus)",
