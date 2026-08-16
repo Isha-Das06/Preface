@@ -13,6 +13,7 @@ import { AppPage } from "@/components/app/page-shell";
 import { NewClientButton } from "@/components/app/new-client";
 import { RemindButton } from "@/components/app/remind-button";
 import { clients, humanWait, waitingOn } from "@/lib/mock-app";
+import { FirstRun } from "@/components/app/first-run";
 
 /**
  * B1 — Waiting on. The app root.
@@ -22,33 +23,54 @@ import { clients, humanWait, waitingOn } from "@/lib/mock-app";
  * business back: who is stuck, and on what. Sorted longest-wait
  * first, so the most stuck client is impossible to miss.
  */
-export default function WaitingOnPage() {
-  const finishedThisWeek = clients.filter(
-    (c) => c.status === "completed",
-  ).length;
+export default async function WaitingOnPage({
+  searchParams,
+}: PageProps<"/app">) {
+  // ?empty=1 renders the day-one state. Kept as a switch so the
+  // first-run experience stays reviewable without wiping data —
+  // it is the screen most likely to decide whether a signup ever
+  // becomes a customer, and it should never go unlooked-at.
+  const { empty } = await searchParams;
+  const isFirstRun = empty === "1";
+
+  const rows = isFirstRun ? [] : waitingOn;
+  const finishedThisWeek = isFirstRun
+    ? 0
+    : clients.filter((c) => c.status === "completed").length;
+
+  if (isFirstRun) {
+    return (
+      <AppPage
+        title="Welcome to Preface"
+        description="One link between a client saying yes and the work starting."
+      >
+        <FirstRun />
+      </AppPage>
+    );
+  }
 
   return (
     <AppPage
       title="Waiting on"
       description={
-        waitingOn.length > 0
-          ? `${waitingOn.length} clients haven't finished onboarding.`
+        rows.length > 0
+          ? `${rows.length} clients haven't finished onboarding.`
           : undefined
       }
       actions={<NewClientButton />}
     >
-      {waitingOn.length === 0 ? (
+      {rows.length === 0 ? (
         <Card>
           <EmptyState
             icon={CheckCircle2}
             title="Nothing to chase"
-            description="Every client is up to date."
+            description="Every client is up to date. You'll see anyone who stalls here."
             action={<NewClientButton />}
           />
         </Card>
       ) : (
         <div className="flex flex-col gap-3">
-          {waitingOn.map((c) => (
+          {rows.map((c) => (
             <Card key={c.id}>
               <CardBody className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-start gap-3">

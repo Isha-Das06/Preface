@@ -60,6 +60,43 @@ The existing copy is strong and mostly stays. Gaps:
 - **Missing specificity near the CTA** — "Free for 14 days. No card required." is good; add what happens next.
 - **No mid-page CTA.** The page asks once at the top and once at the bottom, and nothing in the middle where conviction peaks.
 
+---
+
+# Part 2 — the logged-in app
+
+Researched separately, because app UX is a different discipline. On a landing page motion persuades; in an app it must **confirm, orient or reassure**, or it is noise the user hits fifty times a week.
+
+## Diagnosis
+
+| Problem | Evidence |
+|---|---|
+| Day one was undesigned — every screen assumed data | Users hit empty states more than any modal or tour; it is the primary onboarding surface |
+| No activation path from signup to first sent link | Most SaaS products lose 40–60% of new users in week one, in the gap between signup and first value |
+| `Skeleton` was built in Goal 2 and never used | Visible progress cuts abandonment up to ~30% |
+| Clients list had no search or filter | Unusable past ~20 rows |
+
+## What changed
+
+**1. A real first-run screen.** `/app?empty=1`. Not a blank slate with an "Add client" button — a three-item checklist that names the finish line ("Get your first client onboarded"), shows two items already done so the remaining one feels close, and states the honest expectation: *most people send their first link about ten minutes after signing up.*
+
+**2. Sample data underneath, unmistakably labelled.** Showing what the screen becomes beats describing it. Rendered at 55% opacity, `aria-hidden`, `pointer-events-none`, behind an "Example data" divider. Mislabelling sample rows as real would be worse than showing nothing.
+
+**3. Skeletons that match their content.** `loading.tsx` for the waiting-on and clients routes, dimensioned to the real cards (110px) and rows (48px) so nothing jumps when data lands. A skeleton that doesn't match its content trades one bad experience for another.
+
+**4. Search and status filters** on the clients list, with counts on each filter so the shape of the list is legible before clicking. Searches company, contact and email — the three things a person actually types.
+
+**5. A distinct empty state for "no search results"**, separate from "no clients yet". Same screen, opposite meanings: one needs a first action, the other needs a way back.
+
+## What was deliberately NOT added
+
+**Scroll reveals in the app.** Correct on a landing page read once; wrong in a tool opened daily. Entrance animation on a screen you visit repeatedly becomes a tax on every visit.
+
+**Tooltip tours and product-tour modals.** Research favours empty states over tours precisely because they appear in context and cannot be dismissed-and-forgotten. A tour would also violate the product's core promise — you shouldn't need one.
+
+**Optimistic UI with undo for reminders.** The modern pattern is act-then-undo rather than confirm-then-act, and it is genuinely better for most actions. Kept the confirm here because a reminder is an email to *someone else's client* — irreversible and outward-facing — and the rows sit close enough together that a misclick is plausible. Worth revisiting with a Gmail-style delayed send.
+
+**A celebration on first link sent.** Tempting, and the aha moment is real, but the two-phase new-client modal already gives the link its own moment. Confetti would be the decorative kind of motion the design system rules out.
+
 ## Sources
 
 - [SaaS landing page trends 2026 — SaaSFrame](https://www.saasframe.io/blog/10-saas-landing-page-trends-for-2026-with-real-examples)
@@ -67,3 +104,9 @@ The existing copy is strong and mostly stays. Gaps:
 - [Social proof placement — SaaS Hero](https://www.saashero.net/content/landing-page-social-proof-examples/)
 - [Interactive demo benchmarks — Navattic](https://www.navattic.com/blog/interactive-demos)
 - [B2B SaaS landing page design — Genesys Growth](https://genesysgrowth.com/blog/designing-b2b-saas-landing-pages)
+- [Landing page trust signals — SaaS Hero](https://www.saashero.net/design/landing-page-design-trust-signals/)
+- [Empty states as onboarding — 72Technologies](https://www.72technologies.com/blog/empty-states-as-onboarding-surface)
+- [SaaS onboarding UX and activation — Pixxen](https://pixxen.com/blog/saas-onboarding-ux/)
+- [Skeleton screens vs spinners — OneThing](https://www.onething.design/post/skeleton-screens-vs-loading-spinners)
+- [Optimistic UI patterns — Simon Hearne](https://simonhearne.com/2021/optimistic-ui-patterns/)
+- [App performance and perceived speed — Orbix](https://www.orbix.studio/blogs/app-performance-ui-ux-optimization)
