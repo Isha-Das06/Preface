@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Upload } from "lucide-react";
 import {
@@ -11,6 +11,7 @@ import {
   RadioCard,
   RadioGroup,
 } from "@/components/ui";
+import { completeSetup } from "@/lib/auth-actions";
 
 /**
  * M5 — First run. Not in the original spec, and the single most
@@ -46,17 +47,24 @@ const KINDS = [
 ];
 
 export default function Welcome() {
-  const [name, setName] = useState("");
   const [kind, setKind] = useState("marketing");
+  const [state, formAction, pending] = useActionState(
+    async (_prev: { error: string } | undefined, formData: FormData) =>
+      completeSetup(formData),
+    undefined,
+  );
 
   return (
     <div className="marketing min-h-dvh">
-      <div className="mx-auto flex w-full max-w-[560px] flex-col gap-8 px-5 py-14 sm:py-20">
+      <form
+        action={formAction}
+        className="mx-auto flex w-full max-w-[560px] flex-col gap-8 px-5 py-14 sm:py-20"
+      >
         <div className="flex flex-col gap-2">
           <span className="flex size-8 items-center justify-center rounded-md bg-accent-600 text-sm font-semibold text-on-accent">
             P
           </span>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink-900">
+          <h1 className="mt-3 text-4xl font-light tracking-[-0.03em] text-ink-900">
             Let's set you up.
           </h1>
           <p className="text-lg text-ink-500">Takes about two minutes.</p>
@@ -69,10 +77,10 @@ export default function Welcome() {
             required
           >
             <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              name="businessName"
               placeholder="Acme Agency"
               autoFocus
+              required
             />
           </Field>
 
@@ -84,6 +92,9 @@ export default function Welcome() {
               We'll start you off with questions that suit it. Change anything
               afterwards.
             </p>
+            {/* The one routing question. It reshapes the whole builder,
+                which is why it earns its place on this screen. */}
+            <input type="hidden" name="template" value={kind} />
             <RadioGroup value={kind} onValueChange={setKind} className="gap-3">
               {KINDS.map((k) => (
                 <RadioCard
@@ -110,22 +121,29 @@ export default function Welcome() {
           </Field>
         </div>
 
+        {state?.error && (
+          <p role="alert" className="text-sm text-danger-600">
+            {state.error}
+          </p>
+        )}
+
         <div className="flex flex-col gap-3 border-t border-ink-150 pt-6 sm:flex-row sm:items-center sm:justify-between">
           {/* Skipping must always be possible. A first-run screen
               that blocks is an activation failure. */}
-          <Button asChild variant="ghost">
+          <Button asChild variant="ghost" type="button">
             <Link href="/app/workflow">Skip for now</Link>
           </Button>
           <Button
-            asChild
+            type="submit"
             variant="primary"
             size="lg"
+            loading={pending}
             className="w-full sm:w-auto"
           >
-            <Link href="/app/workflow">Continue</Link>
+            Continue
           </Button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

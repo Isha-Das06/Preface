@@ -1,9 +1,13 @@
-import Link from "next/link";
-import { Button, Field, Input } from "@/components/ui";
+import { signIn } from "@/lib/auth-actions";
+import { AuthForm } from "@/components/marketing/auth-form";
 import { AuthLink, AuthShell } from "@/components/marketing/auth-shell";
 
 /** M3 — Login. */
-export default function Login() {
+export default async function Login({
+  searchParams,
+}: PageProps<"/login">) {
+  const { next } = await searchParams;
+
   return (
     <AuthShell
       title="Welcome back"
@@ -13,30 +17,12 @@ export default function Login() {
         </>
       }
     >
-      <form className="flex flex-col gap-5">
-        <Field label="Email" required>
-          <Input
-            type="email"
-            placeholder="you@youragency.com"
-            autoComplete="email"
-          />
-        </Field>
-        <Field
-          label="Password"
-          required
-          hint={<AuthLink href="/login">Forgot?</AuthLink>}
-        >
-          <Input
-            type="password"
-            placeholder="••••••••"
-            autoComplete="current-password"
-          />
-        </Field>
-
-        <Button asChild variant="primary" size="lg" fullWidth>
-          <Link href="/app">Log in</Link>
-        </Button>
-      </form>
+      <AuthForm
+        action={signIn}
+        mode="login"
+        submitLabel="Log in"
+        next={typeof next === "string" ? next : undefined}
+      />
     </AuthShell>
   );
 }

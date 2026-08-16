@@ -6,6 +6,7 @@ import { Bell, LayoutList, Settings, Users, Workflow } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
 import { settings } from "@/lib/mock-app";
+import { SignOutButton } from "./sign-out";
 
 /**
  * "Waiting on" is first and is the app root, not a report buried
@@ -79,7 +80,7 @@ export function Sidebar() {
 
       <div className="flex items-center gap-2.5 border-t border-ink-150 px-4 py-3.5">
         <Avatar name={settings.businessName} size="sm" />
-        <div className="flex min-w-0 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
           <span className="truncate text-sm font-medium text-ink-900">
             {settings.businessName}
           </span>
@@ -87,6 +88,7 @@ export function Sidebar() {
             {settings.plan} · {settings.activeUsed}/{settings.activeLimit} active
           </span>
         </div>
+        <SignOutButton />
       </div>
     </aside>
   );

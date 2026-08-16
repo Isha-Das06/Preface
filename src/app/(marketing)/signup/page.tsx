@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { Button, Field, Input } from "@/components/ui";
+import { signUp } from "@/lib/auth-actions";
+import { AuthForm } from "@/components/marketing/auth-form";
 import { AuthLink, AuthShell } from "@/components/marketing/auth-shell";
 
 /** M4 — Signup. */
@@ -14,26 +14,7 @@ export default function Signup() {
         </>
       }
     >
-      <form className="flex flex-col gap-5">
-        <Field label="Work email" required>
-          <Input
-            type="email"
-            placeholder="you@youragency.com"
-            autoComplete="email"
-          />
-        </Field>
-        <Field label="Password" required help="At least 8 characters.">
-          <Input
-            type="password"
-            placeholder="••••••••"
-            autoComplete="new-password"
-          />
-        </Field>
-
-        <Button asChild variant="primary" size="lg" fullWidth>
-          <Link href="/welcome">Create account</Link>
-        </Button>
-      </form>
+      <AuthForm action={signUp} mode="signup" submitLabel="Create account" />
 
       <p className="text-sm text-ink-500">
         By creating an account you agree to our terms and privacy policy.
