@@ -12,7 +12,10 @@ import "./globals.css";
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  // 300 is for display type only. A light weight needs size to stay
+  // legible — it is used at 3xl and above and never in the app UI
+  // or body copy, where it would fail on contrast and hinting.
+  weight: ["300", "400", "500", "600"],
   display: "swap",
 });
 

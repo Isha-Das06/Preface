@@ -68,7 +68,7 @@ export default function Landing() {
         <div className="grid items-center gap-14 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-16">
           <div className="flex min-w-0 flex-col gap-6">
             <Reveal>
-              <h1 className="max-w-[15ch] text-4xl font-semibold tracking-[-0.02em] text-ink-900 sm:text-5xl">
+              <h1 className="max-w-[15ch] text-4xl font-light tracking-[-0.03em] text-ink-900 sm:text-6xl">
                 Stop sending new clients five different links.
               </h1>
             </Reveal>
@@ -155,7 +155,7 @@ export default function Landing() {
         <div className="flex flex-col gap-10">
           <Reveal className="flex flex-col gap-3">
             <Eyebrow>The week after they say yes</Eyebrow>
-            <h2 className="text-3xl font-semibold tracking-[-0.01em] text-ink-900">
+            <h2 className="text-3xl font-light tracking-[-0.02em] text-ink-900 sm:text-4xl">
               You already know this week.
             </h2>
           </Reveal>
@@ -185,7 +185,7 @@ export default function Landing() {
           </ol>
 
           <Reveal delay={THREAD.length * 90}>
-            <p className="text-2xl font-medium tracking-[-0.01em] text-ink-900">
+            <p className="text-3xl font-light tracking-[-0.02em] text-ink-900">
               Nine days. Nothing started.
             </p>
           </Reveal>
@@ -232,7 +232,7 @@ export default function Landing() {
           <div className="flex flex-col gap-10">
             <Reveal className="flex flex-col gap-3">
               <Eyebrow>Your side</Eyebrow>
-              <h2 className="max-w-[22ch] text-3xl font-semibold tracking-[-0.01em] text-ink-900">
+              <h2 className="max-w-[22ch] text-3xl font-light tracking-[-0.02em] text-ink-900 sm:text-4xl">
                 Set it up once. Ten minutes, not an afternoon.
               </h2>
               <p className="measure text-lg text-ink-600">
@@ -332,7 +332,7 @@ export default function Landing() {
           <div className="flex flex-col gap-10">
             <Reveal className="flex flex-col gap-3">
               <Eyebrow>What you get</Eyebrow>
-              <h2 className="max-w-[20ch] text-3xl font-semibold tracking-[-0.01em] text-ink-900">
+              <h2 className="max-w-[20ch] text-3xl font-light tracking-[-0.02em] text-ink-900 sm:text-4xl">
                 One link out. Everything back.
               </h2>
             </Reveal>
@@ -444,7 +444,7 @@ export default function Landing() {
         <Section className="!py-12">
           <Reveal>
             <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
-              <p className="text-xl font-medium tracking-[-0.01em] text-ink-900">
+              <p className="text-2xl font-light tracking-[-0.02em] text-ink-900">
                 How many links do you send a new client?
               </p>
               <Button asChild variant="primary" size="lg">
@@ -463,7 +463,7 @@ export default function Landing() {
         <div className="grid items-center gap-12 md:grid-cols-2">
           <Reveal className="flex flex-col gap-4">
             <Eyebrow>Their side</Eyebrow>
-            <h2 className="text-3xl font-semibold tracking-[-0.01em] text-ink-900">
+            <h2 className="text-3xl font-light tracking-[-0.02em] text-ink-900 sm:text-4xl">
               It looks like you, not like software.
             </h2>
             <p className="text-lg text-ink-600">
@@ -523,7 +523,7 @@ export default function Landing() {
           <div className="flex flex-col gap-10">
             <Reveal className="flex flex-col gap-3">
               <Eyebrow>Where the money and the documents go</Eyebrow>
-              <h2 className="max-w-[22ch] text-3xl font-semibold tracking-[-0.01em] text-ink-900">
+              <h2 className="max-w-[22ch] text-3xl font-light tracking-[-0.02em] text-ink-900 sm:text-4xl">
                 We never hold your money or your client's card.
               </h2>
             </Reveal>
@@ -579,7 +579,7 @@ export default function Landing() {
         <Section>
           <Reveal className="flex max-w-[640px] flex-col gap-4">
             <Eyebrow>What it isn't</Eyebrow>
-            <h2 className="text-3xl font-semibold tracking-[-0.01em] text-ink-900">
+            <h2 className="text-3xl font-light tracking-[-0.02em] text-ink-900 sm:text-4xl">
               It does one thing.
             </h2>
             <p className="text-lg text-ink-600">
@@ -604,7 +604,7 @@ export default function Landing() {
         <div className="flex flex-col gap-10">
           <Reveal className="flex flex-col gap-3">
             <Eyebrow>Pricing</Eyebrow>
-            <h2 className="text-3xl font-semibold tracking-[-0.01em] text-ink-900">
+            <h2 className="text-3xl font-light tracking-[-0.02em] text-ink-900 sm:text-4xl">
               From $49 a month.
             </h2>
             <p className="measure text-lg text-ink-600">
@@ -664,7 +664,7 @@ export default function Landing() {
         <div className="flex flex-col gap-10">
           <Reveal className="flex flex-col gap-3">
             <Eyebrow>Before you ask</Eyebrow>
-            <h2 className="text-3xl font-semibold tracking-[-0.01em] text-ink-900">
+            <h2 className="text-3xl font-light tracking-[-0.02em] text-ink-900 sm:text-4xl">
               Questions people ask.
             </h2>
           </Reveal>
@@ -703,7 +703,7 @@ export default function Landing() {
       <div className="border-t border-ink-150">
         <Section>
           <Reveal className="flex flex-col items-start gap-6">
-            <h2 className="max-w-[18ch] text-4xl font-semibold tracking-[-0.02em] text-ink-900">
+            <h2 className="max-w-[18ch] text-4xl font-light tracking-[-0.03em] text-ink-900 sm:text-5xl">
               Send your first onboarding link today.
             </h2>
             <p className="text-lg text-ink-600">

@@ -44,7 +44,7 @@ export default function Pricing() {
   return (
     <div className="mx-auto w-full max-w-[1100px] px-5 py-16 sm:py-20">
       <div className="flex flex-col gap-3">
-        <h1 className="text-4xl font-semibold tracking-tight text-ink-900">
+        <h1 className="text-4xl font-light tracking-[-0.03em] text-ink-900 sm:text-5xl">
           Simple pricing.
         </h1>
         <p className="text-lg text-ink-600">
@@ -73,7 +73,7 @@ export default function Pricing() {
 
               <div className="flex items-baseline gap-1.5">
                 <span
-                  className="text-4xl font-semibold tracking-tight text-ink-900"
+                  className="text-5xl font-light tracking-[-0.03em] text-ink-900"
                   data-numeric
                 >
                   {p.price}
@@ -189,7 +189,7 @@ export default function Pricing() {
       </div>
 
       <div className="mt-14 flex flex-col gap-7">
-        <h2 className="text-2xl font-semibold text-ink-900">
+        <h2 className="text-3xl font-light tracking-[-0.02em] text-ink-900">
           Pricing questions
         </h2>
         <dl className="grid gap-x-10 gap-y-6 md:grid-cols-2">

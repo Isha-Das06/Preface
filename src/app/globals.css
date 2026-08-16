@@ -181,6 +181,7 @@
   --fs-3xl: 1.75rem;   --lh-3xl: 2.25rem;  /* 28/36 */
   --fs-4xl: 2.25rem;   --lh-4xl: 2.75rem;  /* 36/44 */
   --fs-5xl: 3rem;      --lh-5xl: 3.5rem;   /* 48/56 */
+  --fs-6xl: 3.75rem;   --lh-6xl: 4rem;     /* 60/64 */
 
   /* Default control height. The portal raises this to 44px, so a
      plain <Button> or <Input> adapts to its context automatically
@@ -279,8 +280,9 @@
   --fs-xl: 1.375rem;   --lh-xl: 2rem;      /* 22/32 */
   --fs-2xl: 1.75rem;   --lh-2xl: 2.25rem;  /* 28/36 */
   --fs-3xl: 2.25rem;   --lh-3xl: 2.75rem;  /* 36/44 */
-  --fs-4xl: 3rem;      --lh-4xl: 3.5rem;   /* 48/56 */
+  --fs-4xl: 3rem;      --lh-4xl: 3.25rem;  /* 48/52 */
   --fs-5xl: 3.75rem;   --lh-5xl: 4rem;     /* 60/64 */
+  --fs-6xl: 4.5rem;    --lh-6xl: 4.5rem;   /* 72/72 */
 
   --control-h: 2.75rem;
   --radius-card: 12px;
@@ -346,6 +348,8 @@
   --text-4xl--line-height: var(--lh-4xl);
   --text-5xl: var(--fs-5xl);
   --text-5xl--line-height: var(--lh-5xl);
+  --text-6xl: var(--fs-6xl);
+  --text-6xl--line-height: var(--lh-6xl);
 
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", sans-serif;
