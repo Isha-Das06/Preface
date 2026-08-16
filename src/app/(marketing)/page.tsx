@@ -189,6 +189,36 @@ export default function Landing() {
               Nine days. Nothing started.
             </p>
           </Reveal>
+
+          {/* The stakes, not the annoyance. Link-counting gets
+              attention; this is what actually makes someone switch —
+              the moment a new client's first impression is a Google
+              Form and a payment link. */}
+          <Reveal delay={THREAD.length * 90 + 120}>
+            <div className="flex max-w-[560px] flex-col gap-5 border-t border-ink-150 pt-8">
+              <p className="text-base text-ink-500">
+                And that's only your side of it. Here's theirs.
+              </p>
+
+              <div className="flex justify-end">
+                <span className="rounded-[16px] rounded-tr-[5px] border border-ink-200 bg-ink-100 px-4 py-2.5 text-base text-ink-700">
+                  Sorry — which link was the payment one again?
+                </span>
+              </div>
+
+              <p className="text-lg text-ink-900">
+                You just signed a client at{" "}
+                <span className="font-medium">$5,000 a month</span>. This is
+                their first week of actually working with you — and so far it
+                looks like a Google Form and a payment link from a stranger.
+              </p>
+
+              <p className="measure-prose text-base text-ink-600">
+                The work hasn't started and you're already explaining yourself.
+                That's the part that costs you the next referral.
+              </p>
+            </div>
+          </Reveal>
         </div>
       </Section>
 

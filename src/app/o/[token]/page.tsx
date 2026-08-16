@@ -38,17 +38,36 @@ export default async function PortalWelcome({
   const { first } = await searchParams;
   const isFirstVisit = first === "1";
 
-  const listSteps: Step[] = steps.map((s) => ({
-    id: s.slug,
-    title: s.title,
-    meta: isFirstVisit ? undefined : s.meta,
-    optional: s.optional,
-    state: isFirstVisit ? "upcoming" : s.status,
-    href: `/o/demo/${s.slug}`,
-  }));
+  // A dependency only locks while its prerequisite is unfinished.
+  // Resolved here rather than baked into the data so the lock
+  // disappears the moment the client satisfies it.
+  const isDone = (slug: string) =>
+    steps.find((s) => s.slug === slug)?.status === "complete";
+
+  const listSteps: Step[] = steps.map((s) => {
+    const blocked =
+      Boolean(s.dependsOn) && (isFirstVisit || !isDone(s.dependsOn!));
+
+    return {
+      id: s.slug,
+      title: s.title,
+      meta: isFirstVisit ? undefined : s.meta,
+      optional: s.optional,
+      state: isFirstVisit ? "upcoming" : s.status,
+      href: `/o/demo/${s.slug}`,
+      lockedReason: blocked ? s.lockedReason : undefined,
+    };
+  });
 
   const done = isFirstVisit ? 0 : completedCount;
-  const next = isFirstVisit ? steps[0] : (currentStep ?? steps[0]);
+  // Continue must never point at a locked step, or the primary
+  // action on the money shot leads to a dead end.
+  const firstOpen = listSteps.find(
+    (s) => s.state !== "complete" && !s.lockedReason,
+  );
+  const next =
+    steps.find((s) => s.slug === firstOpen?.id) ??
+    (isFirstVisit ? steps[0] : (currentStep ?? steps[0]));
 
   return (
     <PortalShell business={business}>

@@ -38,6 +38,15 @@ export interface PortalStep {
   status: StepStatus;
   meta?: string;
   optional?: boolean;
+  /**
+   * Slug of a step that must be complete before this one opens.
+   * Dependencies, not strict sequencing — see Step.lockedReason.
+   * In practice only payment uses it, so nobody can pay a deposit
+   * on an unsigned agreement.
+   */
+  dependsOn?: string;
+  /** Shown to the client in place of meta while locked. */
+  lockedReason?: string;
 }
 
 export const business: Business = {
@@ -103,6 +112,8 @@ export const steps: PortalStep[] = [
     description: "Paid securely to Acme Agency.",
     status: "current",
     meta: "$2,500.00",
+    dependsOn: "agreement",
+    lockedReason: "Sign the agreement first",
   },
   {
     slug: "schedule",

@@ -270,6 +270,19 @@ export function WorkflowBuilder({ initial }: { initial: BuilderStep[] }) {
                 label="Required to finish onboarding"
                 description="Optional steps can be skipped by the client."
               />
+
+              {/* Dependencies, not sequencing. One checkbox — the
+                  moment this becomes a rules builder we've become
+                  the thing we exist not to be. */}
+              <Checkbox
+                defaultChecked={editing.requiresPrevious}
+                label="Locked until earlier steps are done"
+                description={
+                  editing.type === "payment"
+                    ? "Recommended. Stops a client paying a deposit before the agreement is signed."
+                    : "Most steps are better left open — a client with ten minutes should be able to do whatever they can."
+                }
+              />
             </div>
           </SlideOver>
         )}

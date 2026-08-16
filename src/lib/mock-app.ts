@@ -157,6 +157,13 @@ export interface BuilderStep {
   required: boolean;
   /** Shown in place of the summary when unconfigured. */
   setupHint?: string;
+  /**
+   * "Requires earlier steps first." One checkbox, not a workflow
+   * engine. Off by default — a client with ten minutes should be
+   * able to do whatever they can. On for payment, so a deposit
+   * can't be taken against an unsigned agreement.
+   */
+  requiresPrevious?: boolean;
 }
 
 export const workflowSteps: BuilderStep[] = [
@@ -219,11 +226,12 @@ export const workflowSteps: BuilderStep[] = [
     id: "s7",
     type: "payment",
     title: "Deposit",
-    summary: "$2,500.00 one-off",
+    summary: "$2,500.00 one-off · after the agreement",
     enabled: true,
     configured: false,
     required: true,
     setupHint: "Connect Stripe to collect payment",
+    requiresPrevious: true,
   },
   {
     id: "s8",

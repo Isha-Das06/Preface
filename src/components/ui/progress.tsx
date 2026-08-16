@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { Check, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------
@@ -57,24 +57,35 @@ export interface Step {
   state: StepState;
   href?: string;
   optional?: boolean;
+  /**
+   * Why this step can't be started yet, e.g. "Sign the agreement
+   * first". Dependencies, not strict sequencing: onboarding spans
+   * days on a phone, and a client who only has ten minutes tonight
+   * should still be able to do something. Only steps with a real
+   * commercial dependency lock — chiefly payment, which must not be
+   * payable before the agreement is signed.
+   */
+  lockedReason?: string;
 }
 
-function StepMarker({ state }: { state: StepState }) {
+function StepMarker({ state, locked }: { state: StepState; locked?: boolean }) {
   return (
     <span
       aria-hidden
       className={cn(
         "flex size-6 shrink-0 items-center justify-center rounded-full border",
         "transition-colors duration-(--dur-slow) ease-(--ease) motion-reduce:transition-none",
-        state === "complete" && "border-accent-600 bg-accent-600",
-        state === "current" && "border-accent-600 bg-surface",
-        state === "upcoming" && "border-ink-200 bg-surface",
+        locked && "border-ink-200 bg-ink-100",
+        !locked && state === "complete" && "border-accent-600 bg-accent-600",
+        !locked && state === "current" && "border-accent-600 bg-surface",
+        !locked && state === "upcoming" && "border-ink-200 bg-surface",
       )}
     >
-      {state === "complete" && (
+      {locked && <Lock className="size-3 text-ink-400" strokeWidth={2.5} />}
+      {!locked && state === "complete" && (
         <Check className="size-3.5 text-on-accent" strokeWidth={3} />
       )}
-      {state === "current" && (
+      {!locked && state === "current" && (
         <span className="size-2 rounded-full bg-accent-600" />
       )}
     </span>
@@ -82,33 +93,42 @@ function StepMarker({ state }: { state: StepState }) {
 }
 
 function StepRow({ step }: { step: Step }) {
-  const { state, title, meta, optional } = step;
+  const { state, title, meta, optional, lockedReason } = step;
+  const locked = Boolean(lockedReason);
 
   return (
     <>
-      <StepMarker state={state} />
+      <StepMarker state={state} locked={locked} />
       <span className="flex min-w-0 flex-col gap-0.5">
         <span
           className={cn(
             "text-base",
             // Completed steps recede. The current step is the only
             // one carrying weight, so the eye lands on what's next.
-            state === "complete" && "text-ink-500",
-            state === "current" && "font-medium text-ink-900",
+            locked && "text-ink-400",
+            !locked && state === "complete" && "text-ink-500",
+            !locked && state === "current" && "font-medium text-ink-900",
             // ink-500, not ink-400: an upcoming step title is content
             // the client needs to read, not a placeholder. ink-400
             // measures 2.9:1 and fails AA.
-            state === "upcoming" && "text-ink-500",
+            !locked && state === "upcoming" && "text-ink-500",
           )}
         >
           {title}
-          {optional && (
+          {optional && !locked && (
             <span className="ml-2 text-sm font-normal text-ink-400">
               Optional
             </span>
           )}
         </span>
-        {meta && <span className="text-sm text-ink-500">{meta}</span>}
+        {/* A locked step always says WHY, never just "locked". An
+            unexplained lock reads as a bug or a paywall, and this
+            one exists to protect the client as much as the agency. */}
+        {locked ? (
+          <span className="text-sm text-ink-500">{lockedReason}</span>
+        ) : (
+          meta && <span className="text-sm text-ink-500">{meta}</span>
+        )}
       </span>
     </>
   );
@@ -124,7 +144,9 @@ export function StepList({
   return (
     <ol className={cn("flex flex-col", className)}>
       {steps.map((step) => {
-        const interactive = Boolean(step.href);
+        // A locked step is never a link — the lock has to be real,
+        // not a visual hint you can click straight past.
+        const interactive = Boolean(step.href) && !step.lockedReason;
 
         return (
           <li key={step.id}>
