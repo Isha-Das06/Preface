@@ -483,13 +483,19 @@
     animation: step-in var(--dur) var(--ease);
   }
 
-  /* Uppercase label: xs, 500, tracked out. */
+  /**
+   * Section label. Keeps the structural job — naming a region so the
+   * eye can skip — without shouting.
+   *
+   * Was uppercase + letter-spaced. All-caps section labels are a
+   * named AI-design tell (they appear twice in the 16-pattern list),
+   * and they read as decoration rather than information. Sentence
+   * case at small size does the same work quietly.
+   */
   .label-caps {
-    font-size: var(--fs-xs);
-    line-height: var(--lh-xs);
+    font-size: var(--fs-sm);
+    line-height: var(--lh-sm);
     font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
     color: var(--ink-500);
   }
 

@@ -11,7 +11,9 @@ import {
   Divider,
   ProgressBar,
   StatusBadge,
+  PendingButton,
   StepList,
+  ToastButton,
   type Step,
 } from "@/components/ui";
 import { MobileHeader } from "@/components/app/nav";
@@ -121,10 +123,14 @@ export default async function ClientDetail({
             <Card>
               <CardHeader>
                 <CardTitle>What they submitted</CardTitle>
-                <Button size="sm">
+                <ToastButton
+                  size="sm"
+                  message="Everything copied"
+                  description="Answers, files list and payment details, ready to paste."
+                >
                   <FileText className="size-3.5" />
                   Copy all
-                </Button>
+                </ToastButton>
               </CardHeader>
               <CardBody className="flex flex-col gap-6">
                 <section className="flex flex-col gap-3">
@@ -185,9 +191,13 @@ export default async function ClientDetail({
                       </li>
                     ))}
                   </ul>
-                  <Button size="sm" className="w-fit">
+                  <PendingButton
+                    size="sm"
+                    className="w-fit"
+                    reason="Available once file storage is connected"
+                  >
                     Download all as zip
-                  </Button>
+                  </PendingButton>
                 </section>
               </CardBody>
             </Card>

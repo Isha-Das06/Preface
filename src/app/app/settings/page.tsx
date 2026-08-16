@@ -9,6 +9,7 @@ import {
   Field,
   Input,
   ProgressBar,
+  PendingButton,
   Textarea,
 } from "@/components/ui";
 import { AppPage } from "@/components/app/page-shell";
@@ -45,10 +46,14 @@ export default function SettingsPage() {
             </Field>
 
             <Field label="Logo" help="PNG or SVG. Falls back to a monogram.">
-              <Button size="md" className="w-fit">
+              <PendingButton
+                size="md"
+                className="w-fit"
+                reason="Available once file storage is connected"
+              >
                 <Upload className="size-4" />
                 Upload logo
-              </Button>
+              </PendingButton>
             </Field>
 
             <Field
@@ -127,10 +132,13 @@ export default function SettingsPage() {
               </div>
               {/* Billing is Stripe's Customer Portal — a redirect,
                   not a screen we build and keep in sync. */}
-              <Button size="sm">
+              <PendingButton
+                size="sm"
+                reason="Opens Stripe's billing portal once payments are connected"
+              >
                 <ExternalLink className="size-3.5" />
                 Manage billing
-              </Button>
+              </PendingButton>
             </div>
 
             <div className="flex flex-col gap-2">

@@ -42,8 +42,13 @@ export function EmptyState({
 }
 
 export function ErrorState({
-  title = "Something went wrong",
-  description,
+  // Never "Something went wrong." Generic error copy strips the
+  // human voice out at exactly the moment a user needs reassurance,
+  // and it tells them nothing. Every call site should pass copy
+  // that names what failed; this default at least says the data is
+  // safe, which is the actual worry.
+  title = "That didn't load",
+  description = "The connection dropped on the way. Nothing has been lost.",
   onRetry,
   className,
 }: {

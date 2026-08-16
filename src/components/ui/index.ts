@@ -70,3 +70,4 @@ export {
   TooltipProvider,
 } from "./menu";
 export { Toaster, toast } from "./toast";
+export { PendingButton, ToastButton } from "./action-button";

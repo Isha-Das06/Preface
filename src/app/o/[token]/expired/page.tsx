@@ -1,5 +1,5 @@
 import { LinkIcon } from "lucide-react";
-import { Button, Card, CardBody, Field, Input } from "@/components/ui";
+import { Card, CardBody, Field, Input, ToastButton } from "@/components/ui";
 import { PortalShell } from "@/components/portal/portal-shell";
 import { business } from "@/lib/mock";
 
@@ -37,9 +37,15 @@ export default function ExpiredLink() {
                 autoComplete="email"
               />
             </Field>
-            <Button variant="primary" size="lg" className="w-full">
+            <ToastButton
+              variant="primary"
+              size="lg"
+              className="w-full"
+              message="Check your inbox"
+              description="If that address has an onboarding with us, a fresh link is on its way."
+            >
               Send me a new link
-            </Button>
+            </ToastButton>
           </CardBody>
         </Card>
 

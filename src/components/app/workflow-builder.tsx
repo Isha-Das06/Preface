@@ -43,6 +43,7 @@ import {
   DialogTrigger,
   Field,
   Input,
+  PendingButton,
   SlideOver,
   Textarea,
   toast,
@@ -198,10 +199,10 @@ export function WorkflowBuilder({ initial }: { initial: BuilderStep[] }) {
             </>
           )}
         </p>
-        <Button size="sm">
+        <PendingButton size="sm" reason="Adding steps arrives with the saved workflow">
           <Plus className="size-4" />
           Add step
-        </Button>
+        </PendingButton>
       </div>
 
       {/* B6 — step editor. A slide-over, not a dialog: editing feels

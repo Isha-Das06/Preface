@@ -528,7 +528,12 @@ export default function Landing() {
               </h2>
             </Reveal>
 
-            <div className="grid gap-x-12 gap-y-7 md:grid-cols-2">
+            {/* A definition list, not six identical icon cards.
+                Repeating the same shield six times carries no
+                information — it is decoration pretending to be
+                structure, and "identical feature cards with icons
+                above text" is a named AI-design tell. */}
+            <dl className="grid gap-x-12 gap-y-7 md:grid-cols-2">
               {[
                 [
                   "Payments go straight to your Stripe",
@@ -556,21 +561,15 @@ export default function Landing() {
                 ],
               ].map(([title, body], i) => (
                 <Reveal key={title} delay={i * 50}>
-                  <div className="flex min-w-0 items-start gap-3">
-                    <ShieldCheck
-                      className="mt-0.5 size-4 shrink-0 text-accent-600"
-                      strokeWidth={2}
-                    />
-                    <div className="flex flex-col gap-1">
-                      <h3 className="text-base font-medium text-ink-900">
-                        {title}
-                      </h3>
-                      <p className="text-sm text-ink-600">{body}</p>
-                    </div>
+                  <div className="flex min-w-0 flex-col gap-1 border-t border-ink-150 pt-4">
+                    <dt className="text-base font-medium text-ink-900">
+                      {title}
+                    </dt>
+                    <dd className="text-sm text-ink-600">{body}</dd>
                   </div>
                 </Reveal>
               ))}
-            </div>
+            </dl>
           </div>
         </Section>
       </div>
@@ -624,7 +623,6 @@ export default function Landing() {
                 <div
                   className={cn(
                     "flex h-full flex-col gap-1 rounded-lg border bg-surface p-5",
-                    "transition-colors duration-(--dur) hover:border-accent-300",
                     name === "Studio" ? "border-accent-600" : "border-ink-200",
                   )}
                 >
@@ -742,10 +740,12 @@ function BentoTile({
   return (
     <div
       className={cn(
-        "group flex flex-col gap-4 rounded-lg border border-ink-200 bg-ink-50 p-5",
-        // Moment 5 — the border warms on hover. Signals the tile is
-        // a thing, without a shadow or a lift.
-        "transition-colors duration-(--dur) hover:border-accent-300",
+        "flex flex-col gap-4 rounded-lg border border-ink-200 bg-ink-50 p-5",
+        // No hover state. These tiles are not clickable, and a border
+        // that lights up on hover promises an interaction that never
+        // arrives — the sharpest tell of AI-generated UI there is,
+        // and the one that actually reads as broken rather than
+        // merely unfashionable.
         className,
       )}
     >

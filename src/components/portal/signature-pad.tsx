@@ -39,10 +39,12 @@ export function SignaturePad({
             Signed
           </span>
 
-          <div className="flex flex-col gap-1 border-b border-ink-200 pb-3">
-            <span className="text-2xl text-ink-900" style={{ fontStyle: "italic" }}>
-              {name}
-            </span>
+          {/* A ruled signature block, not a faked handwriting effect.
+              Serif-italic-as-accent is a named AI-design tell, and a
+              typed name pretending to be handwritten is less credible
+              than one presented honestly on a signature rule. */}
+          <div className="flex flex-col gap-1.5 border-b border-ink-300 pb-2">
+            <span className="text-2xl text-ink-900">{name}</span>
           </div>
 
           <dl className="flex flex-col gap-1 text-sm text-ink-500">
@@ -104,11 +106,8 @@ export function SignaturePad({
             render as a signature is what makes typing one feel
             like signing rather than filling in a field. */}
         {name.trim() && (
-          <div className="flex flex-col gap-1 rounded-md bg-ink-50 px-4 py-3">
-            <span
-              className="text-2xl text-ink-900"
-              style={{ fontStyle: "italic" }}
-            >
+          <div className="flex flex-col gap-2 rounded-md bg-ink-50 px-4 py-3">
+            <span className="border-b border-ink-300 pb-1.5 text-2xl text-ink-900">
               {name}
             </span>
             <span className="text-xs text-ink-500">Your signature</span>

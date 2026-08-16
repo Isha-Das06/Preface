@@ -14,7 +14,9 @@ export default function MarketingLayout({
 }: LayoutProps<"/">) {
   return (
     <div className="marketing flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-40 border-b border-ink-150 bg-ink-50/85 backdrop-blur-sm">
+      {/* Solid, not frosted. Glassmorphism is a named AI-design tell
+          and buys nothing here — the header sits on a flat ground. */}
+      <header className="sticky top-0 z-40 border-b border-ink-150 bg-ink-50">
         <div className="mx-auto flex h-16 w-full max-w-[1100px] items-center justify-between gap-4 px-5">
           <Link
             href="/"

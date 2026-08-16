@@ -7,6 +7,7 @@ import {
   Button,
   Field,
   Input,
+  PendingButton,
   RadioCard,
   RadioGroup,
 } from "@/components/ui";
@@ -99,10 +100,13 @@ export default function Welcome() {
             label="Add your logo"
             help="Optional — we'll use your initials until you do."
           >
-            <Button className="w-fit">
+            <PendingButton
+              className="w-fit"
+              reason="Available once file storage is connected"
+            >
               <Upload className="size-4" />
               Upload logo
-            </Button>
+            </PendingButton>
           </Field>
         </div>
 
