@@ -46,3 +46,9 @@ next-env.d.ts
 
 # Supabase CLI binary (npm wrapper is broken on Windows; see docs/10-setup.md)
 .bin/
+
+# Supabase local runtime state — regenerated on every start.
+# Harmless locally (published demo keys) but the same path holds
+# real secrets against a hosted project. Never track it.
+supabase/.temp/
+supabase/.branches/
