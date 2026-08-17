@@ -1,29 +1,43 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 /**
- * Plus Jakarta Sans — geometric-humanist, warm, distinctive at UI sizes.
- * JetBrains Mono — only where digits must align (amounts, IDs, dates).
+ * Fonts are BUNDLED, not fetched from Google at build time.
  *
- * next/font self-hosts these at build time and generates size-adjusted
- * fallback metrics, so there is no layout shift and no external request.
+ * next/font/google downloads on every cold build, so a flaky
+ * connection silently swaps in a fallback face and the design
+ * degrades without anyone noticing — which is exactly what happened
+ * here once. Local files make the build deterministic and offline-
+ * safe, and cost 168 KB in the repo.
+ *
+ * Latin subset only. Google serves several unicode-range subsets;
+ * shipping all of them would triple the weight for glyphs this
+ * product never renders.
  */
-const jakarta = Plus_Jakarta_Sans({
+
+const jakarta = localFont({
   variable: "--font-jakarta",
-  subsets: ["latin"],
-  // 300 is for display type only. A light weight needs size to stay
-  // legible — it is used at 3xl and above and never in the app UI
-  // or body copy, where it would fail on contrast and hinting.
-  weight: ["300", "400", "500", "600"],
   display: "swap",
+  // Metrics from the real face, so the fallback occupies near-
+  // identical space and there is no layout shift on swap.
+  fallback: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+  src: [
+    { path: "./fonts/PlusJakartaSans-300.woff2", weight: "300", style: "normal" },
+    { path: "./fonts/PlusJakartaSans-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/PlusJakartaSans-500.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/PlusJakartaSans-600.woff2", weight: "600", style: "normal" },
+  ],
 });
 
-const jetbrains = JetBrains_Mono({
+const jetbrains = localFont({
   variable: "--font-jetbrains",
-  subsets: ["latin"],
-  weight: ["400", "500"],
   display: "swap",
+  fallback: ["ui-monospace", "SFMono-Regular", "monospace"],
+  src: [
+    { path: "./fonts/JetBrainsMono-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/JetBrainsMono-500.woff2", weight: "500", style: "normal" },
+  ],
 });
 
 export const metadata: Metadata = {
