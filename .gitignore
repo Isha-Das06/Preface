@@ -43,3 +43,6 @@ next-env.d.ts
 # Local env — never commit real keys
 .env.local
 .env*.local
+
+# Supabase CLI binary (npm wrapper is broken on Windows; see docs/10-setup.md)
+.bin/

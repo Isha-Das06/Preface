@@ -1,75 +1,115 @@
-# Setup
+# Local setup
 
-The app runs **without any of this** — every screen renders on mock data, nothing 500s. Follow this when you want real auth and a real database.
+Everything runs on your own machine. No Supabase account, no cost, nothing online.
 
-## Option A — local, no account (recommended for dev)
+## Prerequisites
 
-Docker is already installed on this machine; the daemon just needs to be running.
+- **Docker Desktop** — must be *running* (green "Engine running", bottom-left)
+- Node 20+
 
-1. **Start Docker Desktop** and wait for it to say "Engine running".
-
-2. **Start Supabase.** First run pulls several GB of images, so give it a few minutes.
-   ```bash
-   npx supabase start
-   ```
-   It prints an API URL, an `anon key` and a `service_role key` when it finishes.
-
-3. **Copy the env file and paste those three values in.**
-   ```bash
-   cp .env.example .env.local
-   ```
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
-   SUPABASE_SERVICE_ROLE_KEY=<service_role key>
-   ```
-
-4. **Apply the schema and seed.**
-   ```bash
-   npx supabase db reset
-   ```
-
-5. **Restart the dev server** so it picks up `.env.local`.
-
-Local Studio runs at `http://127.0.0.1:54323` — useful for inspecting rows and confirming RLS actually bites.
-
-## Option B — hosted Supabase
-
-1. Create a project at supabase.com.
-2. **Project Settings → API** gives you the URL, `anon` key and `service_role` key. Put them in `.env.local`.
-3. Push the schema:
-   ```bash
-   npx supabase link --project-ref <your-ref>
-   npx supabase db push
-   ```
-4. Paste `supabase/seed.sql` into the SQL editor if you want the sample clients.
-
-## After it's connected
-
-Generate the real database types and delete the hand-written note in `src/lib/supabase/types.ts`:
+## Start
 
 ```bash
-npx supabase gen types typescript --local > src/lib/supabase/types.ts
+.bin/supabase.exe start     # Windows — see note below
+npm run dev
 ```
 
-Then the client can take its `<Database>` generic back and every query becomes fully typed. Until then reads are typed explicitly against the row interfaces — see the note in that file for why the generic isn't hand-written.
+App on `http://localhost:3000`. Database dashboard on `http://localhost:54323`. Emails land at `http://localhost:54324` — nothing is ever sent to a real address in local development.
 
-## What exists after Goal 6
+## Test account
 
-- 12 tables with RLS, tenant-isolated through a single `auth_business_id()` helper
-- Email/password auth, session refresh in middleware, `/app` and `/welcome` guarded
-- Signup → first run → **business, workflow and steps created from the chosen template**, so the builder is never empty
-- Sign-out in the sidebar
-
-**Not yet wired:** the app screens still read from `src/lib/mock-app.ts`. Swapping those for real queries is Goal 7, and the portal is Goal 8.
-
-## Verifying RLS actually works
-
-Worth doing once, because a silent RLS failure is the worst bug in a multi-tenant app. In Studio's SQL editor:
-
-```sql
--- as an authenticated user of business A, this must return 0 rows
-select * from onboardings where business_id = '<business B id>';
+```
+founder@acmeagency.co  /  testpassword123
 ```
 
-If it returns rows, a policy is wrong — stop and fix it before Goal 7.
+Linked to the seeded Acme Agency with 5 clients and 5 onboardings.
+
+## Common commands
+
+| | |
+|---|---|
+| `.bin/supabase.exe db reset` | Wipe and rebuild from migrations + seed. Use freely — local data is disposable. |
+| `.bin/supabase.exe stop` | Stop containers, keep data |
+| `.bin/supabase.exe stop --no-backup` | Stop and wipe |
+| `.bin/supabase.exe status` | Show URLs and keys |
+
+Restarting Docker is safe — data lives in a volume and survives.
+
+---
+
+## Two traps that cost real time
+
+### 1. The npm `supabase` package is broken on Windows
+
+`npm i -D supabase` installs a wrapper whose Windows binary is a **placeholder** — `@supabase/cli-windows-x64` only exists at version `1.0.0` while the wrapper asks for `2.114.0`. It fails with:
+
+```
+No matching Supabase CLI binary package found for win32-x64
+```
+
+**Fix:** download the real binary from GitHub releases into `.bin/` (gitignored). Already done in this repo.
+
+```bash
+curl -sL https://github.com/supabase/cli/releases/download/v2.114.0/supabase_2.114.0_windows_amd64.zip -o .bin/supabase.zip
+```
+
+### 2. Creating tables grants the API roles nothing
+
+This one is silent and vicious. Tables created in a migration get `REFERENCES, TRIGGER, TRUNCATE` for `anon`/`authenticated`/`service_role` — **no SELECT, no INSERT**. Every request returns 401 or 403 no matter how correct your RLS policies are, and the error points nowhere near the cause.
+
+The migration now grants explicitly, deliberately tighter than Supabase's stock setup:
+
+| Role | Access | Why |
+|---|---|---|
+| `anon` | schema usage only, **no tables** | The browser never talks to Postgres. Nothing legitimate needs it. |
+| `authenticated` | SELECT/INSERT/UPDATE/DELETE, scoped by RLS | The business app, server-side |
+| `service_role` | everything, bypasses RLS | The client portal and webhooks, which have no user and scope by token themselves |
+
+Supabase's default grants everything to `anon` and leans entirely on RLS. Ours removes a whole class of mistake, because a browser-side query is impossible rather than merely unauthorised.
+
+### 3. `ON CONFLICT` and deferrable constraints
+
+`workflow_steps` and `onboarding_steps` have DEFERRABLE unique constraints on `(parent_id, position)` — needed so a reorder can shuffle positions inside one transaction. Postgres refuses a deferrable constraint as an `ON CONFLICT` arbiter:
+
+```
+ERROR: ON CONFLICT does not support deferrable unique constraints as arbiters (SQLSTATE 55000)
+```
+
+So the seed inserts those tables without `ON CONFLICT`. It only ever runs against a fresh database.
+
+---
+
+## Verifying RLS actually bites
+
+Worth re-running after any policy change. Tenant isolation is the one thing that must never silently break.
+
+```bash
+# 1. Sign up a user
+curl -s -X POST http://127.0.0.1:54321/auth/v1/signup \
+  -H "apikey: <secret key from supabase status>" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"probe@test.co","password":"testpassword123"}'
+
+# 2. With that token, read a table. Should be 0 rows — the user
+#    isn't linked to a business yet, and the seeded data must stay
+#    invisible.
+curl -s "http://127.0.0.1:54321/rest/v1/clients?select=id" \
+  -H "apikey: <publishable key>" -H "Authorization: Bearer <token>"
+```
+
+Verified on this schema: **0 rows unlinked, 5 rows once linked**, using the same token. If an unlinked user ever sees a row, stop and fix it before building anything on top.
+
+---
+
+## Moving to a hosted database later
+
+Nothing to export — the schema lives in `supabase/migrations/`.
+
+```bash
+.bin/supabase.exe link --project-ref <ref>
+.bin/supabase.exe db push
+```
+
+Then swap the three keys in `.env.local`. Local data doesn't come with you, and shouldn't — treat it as scratch.
+
+**One difference to expect:** email confirmation is off locally and on by default in hosted projects, so the signup flow will feel different the first time. Config, not a bug.

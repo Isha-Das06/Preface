@@ -48,8 +48,11 @@ values
   (wf_id, 4, 'checklist', 'Account access', 'Add us to the accounts we will be working in.', true, true, true, false, '{}'),
   (wf_id, 5, 'agreement', 'Service agreement', 'Please read through, then sign at the bottom.', true, true, false, false, '{}'),
   (wf_id, 6, 'payment', 'Deposit', 'Paid securely to Acme Agency.', true, true, false, true, '{}'),
-  (wf_id, 7, 'scheduling', 'Kickoff call', 'Pick a time that works for you.', false, true, true, false, '{}')
-on conflict do nothing;
+  (wf_id, 7, 'scheduling', 'Kickoff call', 'Pick a time that works for you.', false, true, true, false, '{}');
+-- No ON CONFLICT here: workflow_steps' unique constraint is
+-- DEFERRABLE, and Postgres refuses a deferrable constraint as an
+-- ON CONFLICT arbiter (SQLSTATE 55000). The seed only ever runs
+-- against a fresh database, so there is nothing to conflict with.
 
 insert into clients (id, business_id, name, company, email) values
   (c_north,  biz_id, 'Sarah Chen',    'Northstar Labs',  'sarah@northstarlabs.co'),

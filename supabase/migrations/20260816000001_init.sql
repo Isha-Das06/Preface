@@ -204,6 +204,32 @@ create index on events (onboarding_id, created_at desc);
 create index on events (business_id, created_at desc);
 
 -- ============================================================
+-- GRANTS
+--
+-- Creating a table grants the API roles nothing usable, so without
+-- this block every request returns 401/403 no matter how correct the
+-- RLS policies are. Explicit beats relying on default privileges.
+--
+-- Deliberately tighter than Supabase's stock setup, which grants
+-- everything to `anon` and leans entirely on RLS. Our architecture
+-- never touches Postgres from the browser: the business app runs as
+-- `authenticated` server-side, and the client portal runs as
+-- `service_role` server-side. So `anon` needs no table access at
+-- all, and giving it none removes a whole class of mistake.
+-- ============================================================
+
+grant usage on schema public to anon, authenticated, service_role;
+
+grant select, insert, update, delete
+  on all tables in schema public to authenticated;
+grant usage, select on all sequences in schema public to authenticated;
+
+-- Bypasses RLS. Used only by the portal and webhooks, which have no
+-- authenticated user and must scope every query by token themselves.
+grant all on all tables in schema public to service_role;
+grant all on all sequences in schema public to service_role;
+
+-- ============================================================
 -- ROW LEVEL SECURITY
 --
 -- Every app-side table is scoped to the caller's business. The
