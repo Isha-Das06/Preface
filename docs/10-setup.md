@@ -37,7 +37,7 @@ Restarting Docker is safe — data lives in a volume and survives.
 
 ---
 
-## Two traps that cost real time
+## Traps that cost real time
 
 ### 1. The npm `supabase` package is broken on Windows
 
@@ -76,6 +76,25 @@ ERROR: ON CONFLICT does not support deferrable unique constraints as arbiters (S
 ```
 
 So the seed inserts those tables without `ON CONFLICT`. It only ever runs against a fresh database.
+
+### 4. `RETURNING` is checked against the SELECT policy, and the error lies
+
+This one cost a whole session. A brand-new signup calling `.insert(...).select().single()` on `businesses` fails with:
+
+```
+new row violates row-level security policy for table "businesses"
+```
+
+That message points at the `WITH CHECK` clause. It is not the `WITH CHECK` clause. `INSERT ... RETURNING` applies the table's **SELECT** policies to the row it hands back, and Postgres reports a failure there with the *same* message as an insert-check failure. At signup the user has no `users` row, so `auth_business_id()` is NULL, so `tenant_select` (`id = auth_business_id()`) matches nothing — the insert lands and the read-back is refused.
+
+Two symptoms worth recognising:
+
+- The insert works in `psql` and fails over PostgREST. PostgREST asks for the row back (`Prefer: return=representation`); a bare `insert` in psql does not.
+- Adding `returning id` to the psql statement reproduces it instantly. That is the fastest way to tell the two apart.
+
+**Fix:** don't ask for the row back during bootstrap. `completeSetup` generates the business id with `randomUUID()` and inserts without `.select()`. Once the `users` row exists, `auth_business_id()` is non-null and `.select()` is safe again — which is why the `workflows` insert a few lines later can still use it.
+
+The rule: **any `.select()` chained onto an `.insert()` needs a SELECT policy that matches the new row at that instant.** During bootstrap, that is a different instant from the one you were thinking about.
 
 ---
 

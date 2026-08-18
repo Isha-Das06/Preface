@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "./supabase/server";
@@ -83,33 +84,51 @@ export async function completeSetup(formData: FormData): Promise<AuthResult> {
 
   const template = getTemplate(templateId);
 
-  const { data: business, error: bizErr } = await supabase
-    .from("businesses")
-    .insert({
-      name,
-      slug: `${slugify(name)}-${Math.random().toString(36).slice(2, 7)}`,
-      reply_to_email: user.email,
-      sender_name: name,
-      trial_ends_at: new Date(
-        Date.now() + 14 * 24 * 60 * 60 * 1000,
-      ).toISOString(),
-    })
-    .select()
-    .single();
+  // The id is generated here instead of being read back with
+  // .select(). At this instant the user has no `users` row, so
+  // auth_business_id() is null and the tenant SELECT policy matches
+  // nothing — and INSERT ... RETURNING applies SELECT policies to the
+  // row it returns. Asking for the row back is what fails, not the
+  // insert. Postgres reports both cases with the same message, "new
+  // row violates row-level security policy", which points squarely at
+  // the wrong clause; don't trust it to mean WITH CHECK.
+  const businessId = randomUUID();
 
-  if (bizErr || !business) return { error: "Couldn't create your business." };
+  const { error: bizErr } = await supabase.from("businesses").insert({
+    id: businessId,
+    name,
+    slug: `${slugify(name)}-${Math.random().toString(36).slice(2, 7)}`,
+    reply_to_email: user.email,
+    sender_name: name,
+    trial_ends_at: new Date(
+      Date.now() + 14 * 24 * 60 * 60 * 1000,
+    ).toISOString(),
+  });
+
+  if (bizErr) {
+    console.error("completeSetup: business insert failed", bizErr);
+    return { error: "Couldn't create your business." };
+  }
 
   const { error: userErr } = await supabase
     .from("users")
-    .insert({ id: user.id, business_id: business.id, email: user.email! });
-  if (userErr) return { error: "Couldn't finish setting up your account." };
+    .insert({ id: user.id, business_id: businessId, email: user.email! });
+  if (userErr) {
+    console.error("completeSetup: users insert failed", userErr);
+    return { error: "Couldn't finish setting up your account." };
+  }
 
+  // Safe to read back from here on: the `users` row above makes
+  // auth_business_id() non-null, so the tenant policy matches.
   const { data: workflow, error: wfErr } = await supabase
     .from("workflows")
-    .insert({ business_id: business.id })
+    .insert({ business_id: businessId })
     .select()
     .single();
-  if (wfErr || !workflow) return { error: "Couldn't create your onboarding." };
+  if (wfErr || !workflow) {
+    console.error("completeSetup: workflow insert failed", wfErr);
+    return { error: "Couldn't create your onboarding." };
+  }
 
   const { error: stepsErr } = await supabase.from("workflow_steps").insert(
     template.steps.map((s, i) => ({
@@ -125,7 +144,10 @@ export async function completeSetup(formData: FormData): Promise<AuthResult> {
       config: s.config ?? {},
     })),
   );
-  if (stepsErr) return { error: "Couldn't set up your steps." };
+  if (stepsErr) {
+    console.error("completeSetup: workflow_steps insert failed", stepsErr);
+    return { error: "Couldn't set up your steps." };
+  }
 
   revalidatePath("/app", "layout");
   redirect("/app/workflow");
