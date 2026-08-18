@@ -2,13 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink, FileText } from "lucide-react";
 import {
+  Button,
   Avatar,
   Card,
   CardBody,
   CardHeader,
   CardTitle,
   Divider,
-  PendingButton,
   ProgressBar,
   StatusBadge,
   StepList,
@@ -18,7 +18,7 @@ import {
 import { MobileHeader } from "@/components/app/nav";
 import { RemindButton } from "@/components/app/remind-button";
 import { CopyLinkButton } from "@/components/app/copy-link";
-import { getClient, relativeTime } from "@/lib/queries";
+import { getClient, getOnboardingFiles, relativeTime } from "@/lib/queries";
 
 /**
  * B3 — Client detail.
@@ -28,6 +28,12 @@ import { getClient, relativeTime } from "@/lib/queries";
  * the client submitted is readable on one page without clicking
  * into six sub-screens.
  */
+
+function humanSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
 
 const EVENT_LABELS: Record<string, string> = {
   client_created: "Client added",
@@ -67,14 +73,34 @@ export default async function ClientDetail({
 
   // Only render sections the client actually has. A "Files" heading
   // above nothing reads as broken.
+  // Prompts and labels live in the step's snapshotted CONFIG; what the
+  // client typed lives in DATA, keyed by field name or question index.
+  // Pairing them here rather than storing the prompt alongside every
+  // answer is what keeps a signed-off questionnaire matching the
+  // wording that was actually put in front of them.
   const questionnaire = steps.find((s) => s.type === "questionnaire");
-  const answers =
-    (questionnaire?.data?.answers as
-      | { prompt: string; answer: string }[]
-      | undefined) ?? [];
+  const prompts =
+    (questionnaire?.config?.questions as { prompt: string }[] | undefined) ??
+    [];
+  const rawAnswers = (questionnaire?.data?.answers ?? {}) as Record<
+    string,
+    string
+  >;
+  const answers = prompts
+    .map((q, i) => ({ prompt: q.prompt, answer: rawAnswers[String(i)] ?? "" }))
+    .filter((a) => a.answer);
 
   const infoStep = steps.find((s) => s.type === "info");
-  const info = (infoStep?.data ?? {}) as Record<string, string>;
+  const infoFields =
+    (infoStep?.config?.fields as { name: string; label: string }[] | undefined) ??
+    [];
+  const infoValues = (infoStep?.data?.values ?? {}) as Record<string, string>;
+  const info = infoFields
+    .map((f) => ({ label: f.label, value: infoValues[f.name] ?? "" }))
+    .filter((f) => f.value);
+
+  const fileStepIds = steps.filter((s) => s.type === "files").map((s) => s.id);
+  const files = await getOnboardingFiles(fileStepIds);
 
   return (
     <>
@@ -158,7 +184,7 @@ export default async function ClientDetail({
               </CardBody>
             </Card>
 
-            {(Object.keys(info).length > 0 || answers.length > 0) && (
+            {(info.length > 0 || answers.length > 0 || files.length > 0) && (
               <Card>
                 <CardHeader>
                   <CardTitle>What they submitted</CardTitle>
@@ -172,25 +198,21 @@ export default async function ClientDetail({
                   </ToastButton>
                 </CardHeader>
                 <CardBody className="flex flex-col gap-6">
-                  {Object.keys(info).length > 0 && (
+                  {info.length > 0 && (
                     <section className="flex flex-col gap-3">
                       <h3 className="label-caps">Company information</h3>
                       <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
-                        {Object.entries(info).map(([k, v]) => (
-                          <div key={k} className="flex flex-col">
-                            <dt className="text-xs text-ink-500 capitalize">
-                              {k}
-                            </dt>
-                            <dd className="text-sm text-ink-900">{v}</dd>
+                        {info.map((f) => (
+                          <div key={f.label} className="flex flex-col">
+                            <dt className="text-xs text-ink-500">{f.label}</dt>
+                            <dd className="text-sm text-ink-900">{f.value}</dd>
                           </div>
                         ))}
                       </dl>
                     </section>
                   )}
 
-                  {Object.keys(info).length > 0 && answers.length > 0 && (
-                    <Divider />
-                  )}
+                  {info.length > 0 && answers.length > 0 && <Divider />}
 
                   {answers.length > 0 && (
                     <section className="flex flex-col gap-4">
@@ -206,6 +228,40 @@ export default async function ClientDetail({
                         </div>
                       ))}
                     </section>
+                  )}
+
+                  {files.length > 0 && (
+                    <>
+                      {(info.length > 0 || answers.length > 0) && <Divider />}
+                      <section className="flex flex-col gap-3">
+                        <h3 className="label-caps">Files</h3>
+                        <ul className="flex flex-col gap-2">
+                          {files.map((f) => (
+                            <li key={f.id} className="flex items-center gap-2">
+                              <FileText className="size-4 shrink-0 text-ink-400" />
+                              {f.url ? (
+                                <a
+                                  href={f.url}
+                                  className="min-w-0 flex-1 truncate text-sm text-accent-600 underline underline-offset-2 hover:text-accent-700"
+                                >
+                                  {f.filename}
+                                </a>
+                              ) : (
+                                <span className="min-w-0 flex-1 truncate text-sm text-ink-900">
+                                  {f.filename}
+                                </span>
+                              )}
+                              <span
+                                className="shrink-0 text-xs text-ink-500"
+                                data-numeric
+                              >
+                                {humanSize(f.sizeBytes)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    </>
                   )}
                 </CardBody>
               </Card>
@@ -247,14 +303,16 @@ export default async function ClientDetail({
                 </span>
                 <div className="flex flex-wrap gap-2">
                   <CopyLinkButton token={onboarding.token} />
-                  <PendingButton
-                    size="sm"
-                    variant="ghost"
-                    reason="Opens their live onboarding once the portal reads real data"
-                  >
-                    <ExternalLink className="size-3.5" />
-                    Preview
-                  </PendingButton>
+                  <Button asChild size="sm" variant="ghost">
+                    <a
+                      href={`/o/${onboarding.token}`}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                    >
+                      <ExternalLink className="size-3.5" />
+                      Preview
+                    </a>
+                  </Button>
                 </div>
               </CardBody>
             </Card>

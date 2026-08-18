@@ -1,12 +1,13 @@
 "use server";
 
-import { randomInt, createHash } from "node:crypto";
+import { randomInt, randomUUID, createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createServiceClient } from "./supabase/server";
 import {
   getPortal,
+  getStepFiles,
   nextSlugAfter,
   stepBySlug,
   type PortalData,
@@ -474,4 +475,208 @@ export async function recordOpen(token: string) {
     .eq("id", portal.onboarding.id);
 
   await logEvent(portal, "link_opened");
+}
+
+/* ── File uploads ────────────────────────────────────────────── */
+
+const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+const BUCKET = "onboarding-files";
+
+interface FileRequestConfig {
+  key: string;
+  label: string;
+  hint: string;
+  required: boolean;
+}
+
+/**
+ * Everything this onboarding is allowed to write to, derived from the
+ * token alone. The client never supplies a path — it gets one back.
+ */
+function uploadPrefix(onboardingId: string, stepId: string) {
+  return `${onboardingId}/${stepId}`;
+}
+
+export type UploadTicket =
+  | { error: string }
+  | { url: string; path: string; uploadToken: string };
+
+/**
+ * Step one of an upload: hand back a one-shot signed URL.
+ *
+ * The file goes from the browser straight to storage rather than
+ * through a server action, because actions cap at 1MB and the portal
+ * promises 25MB. Raising that cap would mean streaming every brand
+ * pack through Next for no benefit.
+ *
+ * The stored name is a random uuid, never the client's filename. That
+ * removes path traversal, unicode and collision handling in one go;
+ * the real name is a column.
+ */
+export async function requestUpload(
+  token: string,
+  requestKey: string,
+  filename: string,
+  sizeBytes: number,
+): Promise<UploadTicket> {
+  const found = await resolve(token, "files");
+  if (!found) return { error: "This step isn't available." };
+  const { portal, step } = found;
+
+  const requests = (step.config.requests ?? []) as FileRequestConfig[];
+  if (!requests.some((r) => r.key === requestKey)) {
+    return { error: "Unknown item." };
+  }
+
+  if (sizeBytes <= 0) return { error: "That file looks empty." };
+  if (sizeBytes > MAX_UPLOAD_BYTES) {
+    return { error: "That file is over 25 MB. Try a smaller one." };
+  }
+
+  const ext = filename.includes(".")
+    ? `.${filename.split(".").pop()!.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12)}`
+    : "";
+  const path = `${uploadPrefix(portal.onboarding.id, step.id)}/${randomUUID()}${ext}`;
+
+  const svc = createServiceClient();
+  const { data, error } = await svc.storage
+    .from(BUCKET)
+    .createSignedUploadUrl(path);
+
+  if (error || !data) {
+    console.error("requestUpload: signed url failed", error);
+    return { error: "Couldn't start that upload. Try again." };
+  }
+
+  return { url: data.signedUrl, path: data.path, uploadToken: data.token };
+}
+
+/**
+ * Step two: record the upload, once storage confirms it exists.
+ *
+ * Size and type are read back from storage rather than taken from the
+ * caller. A browser that has just been handed an upload URL is not a
+ * trustworthy source for how big the thing it uploaded was, and the
+ * business sees these numbers.
+ */
+export async function confirmUpload(
+  token: string,
+  requestKey: string,
+  path: string,
+  filename: string,
+): Promise<PortalResult> {
+  const found = await resolve(token, "files");
+  if (!found) return { error: "This step isn't available." };
+  const { portal, step } = found;
+
+  const requests = (step.config.requests ?? []) as FileRequestConfig[];
+  if (!requests.some((r) => r.key === requestKey)) {
+    return { error: "Unknown item." };
+  }
+
+  // The path came back over the wire, so re-derive what it is allowed
+  // to look like instead of trusting it.
+  const prefix = uploadPrefix(portal.onboarding.id, step.id);
+  if (!path.startsWith(`${prefix}/`) || path.includes("..")) {
+    return { error: "That upload didn't look right." };
+  }
+
+  const svc = createServiceClient();
+  const objectName = path.slice(prefix.length + 1);
+  const { data: listed } = await svc.storage
+    .from(BUCKET)
+    .list(prefix, { search: objectName });
+
+  const object = listed?.find((o) => o.name === objectName);
+  if (!object) return { error: "That upload didn't finish. Try again." };
+
+  const size = Number(object.metadata?.size ?? 0);
+  const mime = String(object.metadata?.mimetype ?? "") || null;
+
+  // Re-uploading against the same request replaces rather than
+  // accumulates: the business asked for a logo, not a version history.
+  const existing = (await getStepFiles(step.id)).filter(
+    (f) => f.request_key === requestKey,
+  );
+  if (existing.length) {
+    await svc.storage.from(BUCKET).remove(existing.map((f) => f.storage_path));
+    await svc
+      .from("files")
+      .delete()
+      .in("id", existing.map((f) => f.id));
+  }
+
+  const { error: insErr } = await svc.from("files").insert({
+    onboarding_step_id: step.id,
+    request_key: requestKey,
+    filename: filename.slice(0, 200),
+    size_bytes: size,
+    mime_type: mime,
+    storage_path: path,
+  });
+
+  if (insErr) {
+    console.error("confirmUpload: files insert failed", insErr);
+    return { error: "Couldn't save that upload." };
+  }
+
+  await settleFilesStep(portal, step, requests);
+}
+
+export async function removeUpload(
+  token: string,
+  fileId: string,
+): Promise<PortalResult> {
+  const found = await resolve(token, "files");
+  if (!found) return { error: "This step isn't available." };
+  const { portal, step } = found;
+
+  // Scoped by step id, so an id belonging to another onboarding
+  // simply matches nothing.
+  const file = (await getStepFiles(step.id)).find((f) => f.id === fileId);
+  if (!file) return { error: "That file is already gone." };
+
+  const svc = createServiceClient();
+  await svc.storage.from(BUCKET).remove([file.storage_path]);
+  await svc.from("files").delete().eq("id", file.id).eq("onboarding_step_id", step.id);
+
+  const requests = (step.config.requests ?? []) as FileRequestConfig[];
+  await settleFilesStep(portal, step, requests);
+}
+
+/** Complete once every required item has something against it. */
+async function settleFilesStep(
+  portal: PortalData,
+  step: PortalStep,
+  requests: FileRequestConfig[],
+) {
+  const files = await getStepFiles(step.id);
+  const have = new Set(files.map((f) => f.request_key));
+  const complete = requests
+    .filter((r) => r.required)
+    .every((r) => have.has(r.key));
+
+  await writeStep(portal, step, { uploaded: files.length }, complete);
+}
+
+/**
+ * Continue from the files step. Optional-only lists never satisfy the
+ * rule above on their own, so pressing Continue is what finishes them.
+ */
+export async function continueFromFiles(token: string): Promise<PortalResult> {
+  const found = await resolve(token, "files");
+  if (!found) return { error: "This step isn't available." };
+  const { portal, step } = found;
+
+  const requests = (step.config.requests ?? []) as FileRequestConfig[];
+  const files = await getStepFiles(step.id);
+  const have = new Set(files.map((f) => f.request_key));
+  const missing = requests.filter((r) => r.required && !have.has(r.key));
+
+  if (missing.length) {
+    return { error: `${missing[0].label} is still needed to continue.` };
+  }
+
+  await writeStep(portal, step, { uploaded: files.length }, true);
+  redirect(onward(portal, "files"));
 }

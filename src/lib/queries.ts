@@ -1,7 +1,12 @@
 import "server-only";
-import { createClient, isSupabaseConfigured } from "./supabase/server";
+import {
+  createClient,
+  createServiceClient,
+  isSupabaseConfigured,
+} from "./supabase/server";
 import type {
   Business,
+  FileRow,
   Client,
   Onboarding,
   OnboardingStatus,
@@ -235,3 +240,64 @@ export async function getWorkflowSteps(): Promise<WorkflowStep[]> {
 }
 
 export { relative as relativeTime, hoursSince };
+
+export interface BusinessFile {
+  id: string;
+  stepId: string;
+  requestKey: string | null;
+  filename: string;
+  sizeBytes: number;
+  uploadedAt: string;
+  /** Short-lived, and null if signing failed rather than a dead link. */
+  url: string | null;
+}
+
+/**
+ * Files a client uploaded, with download links.
+ *
+ * Two clients on purpose. The SELECT runs under the caller's session,
+ * so RLS is what proves these rows belong to their business — this
+ * function never filters by business_id itself. Only once a row has
+ * come back through that gate does the service client sign a URL for
+ * it.
+ *
+ * Signed with `download`, which sets Content-Disposition: attachment.
+ * The bucket accepts any file type, so an uploaded .html or .svg must
+ * never render inline on a Supabase origin the browser might come to
+ * trust.
+ */
+export async function getOnboardingFiles(
+  stepIds: string[],
+): Promise<BusinessFile[]> {
+  if (!isSupabaseConfigured() || stepIds.length === 0) return [];
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("files")
+    .select("*")
+    .in("onboarding_step_id", stepIds)
+    .order("uploaded_at");
+
+  const rows = (data ?? []) as FileRow[];
+  if (rows.length === 0) return [];
+
+  const svc = createServiceClient();
+
+  return Promise.all(
+    rows.map(async (r) => {
+      const { data: signed } = await svc.storage
+        .from("onboarding-files")
+        .createSignedUrl(r.storage_path, 60 * 60, { download: r.filename });
+
+      return {
+        id: r.id,
+        stepId: r.onboarding_step_id,
+        requestKey: r.request_key,
+        filename: r.filename,
+        sizeBytes: r.size_bytes,
+        uploadedAt: r.uploaded_at,
+        url: signed?.signedUrl ?? null,
+      };
+    }),
+  );
+}

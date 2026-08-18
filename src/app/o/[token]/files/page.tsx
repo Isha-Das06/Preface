@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
+import { FilesForm } from "@/components/portal/files-form";
 import { PortalShell } from "@/components/portal/portal-shell";
-import { StepFrame } from "@/components/portal/step-frame";
-import { FileDropzone } from "@/components/portal/file-dropzone";
-import { getPortal, getStepFiles, nextSlugAfter, stepBySlug } from "@/lib/portal";
+import { getPortal, getStepFiles, stepBySlug } from "@/lib/portal";
 
 interface ConfigRequest {
   key: string;
@@ -17,7 +16,7 @@ function humanSize(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-/** C4 — File upload. Storage itself lands in Goal 9. */
+/** C4 — File upload. */
 export default async function FilesStep({
   params,
 }: PageProps<"/o/[token]/files">) {
@@ -30,31 +29,30 @@ export default async function FilesStep({
 
   const requests = (step.config.requests ?? []) as ConfigRequest[];
   const uploaded = await getStepFiles(step.id);
-  const next = nextSlugAfter(portal, "files");
 
   return (
     <PortalShell business={portal.business} token={token}>
-      <StepFrame
+      <FilesForm
         token={token}
         index={step.displayIndex}
         total={portal.steps.length}
         title={step.title}
         description={step.description ?? undefined}
-        continueHref={next ? `/o/${token}/${next}` : `/o/${token}/done`}
-        footerNote="Up to 25 MB per file. If something is missing, you can continue and add it later."
-      >
-        <FileDropzone
-          requests={requests.map((r) => {
-            const file = uploaded.find((f) => f.request_key === r.key);
-            return {
-              ...r,
-              uploaded: file
-                ? { name: file.filename, size: humanSize(file.size_bytes) }
-                : null,
-            };
-          })}
-        />
-      </StepFrame>
+        saved={Boolean(step.completedAt)}
+        requests={requests.map((r) => {
+          const file = uploaded.find((f) => f.request_key === r.key);
+          return {
+            ...r,
+            uploaded: file
+              ? {
+                  id: file.id,
+                  name: file.filename,
+                  size: humanSize(file.size_bytes),
+                }
+              : null,
+          };
+        })}
+      />
     </PortalShell>
   );
 }
