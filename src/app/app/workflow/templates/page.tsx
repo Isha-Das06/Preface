@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { Card, CardBody } from "@/components/ui";
 import { MobileHeader } from "@/components/app/nav";
 import { TemplatePicker } from "@/components/app/template-picker";
-import { templates } from "@/lib/mock-app";
+import { TEMPLATES } from "@/lib/templates";
 
 /**
  * B7 — Template picker.
@@ -36,7 +36,14 @@ export default function TemplatesPage() {
           </p>
         </div>
 
-        <TemplatePicker templates={templates} />
+        <TemplatePicker
+          templates={TEMPLATES.map((t) => ({
+            id: t.id,
+            name: t.name,
+            description: t.description,
+            stepCount: t.steps.length,
+          }))}
+        />
 
         <Card className="bg-warn-100/50">
           <CardBody>

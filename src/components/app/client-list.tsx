@@ -18,8 +18,17 @@ import {
   TR,
   Table,
 } from "@/components/ui";
-import { humanWait, type ClientRow, type OnboardingStatus } from "@/lib/mock-app";
+import type { ClientRow } from "@/lib/queries";
+import type { OnboardingStatus } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
+
+function humanWait(hours: number | null) {
+  if (hours === null) return "not sent yet";
+  if (hours < 1) return "just now";
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"}`;
+  const d = Math.floor(hours / 24);
+  return `${d} day${d === 1 ? "" : "s"}`;
+}
 
 const FILTERS: { id: "all" | OnboardingStatus; label: string }[] = [
   { id: "all", label: "All" },
@@ -137,7 +146,6 @@ export function ClientList({ clients }: { clients: ClientRow[] }) {
                   <TH>Status</TH>
                   <TH>Progress</TH>
                   <TH>Waiting on</TH>
-                  <TH numeric>Value</TH>
                 </TR>
               </THead>
               <TBody>
@@ -184,9 +192,6 @@ export function ClientList({ clients }: { clients: ClientRow[] }) {
                       ) : (
                         <span className="text-ink-400">—</span>
                       )}
-                    </TD>
-                    <TD numeric className="font-mono">
-                      {c.value}
                     </TD>
                   </TR>
                 ))}

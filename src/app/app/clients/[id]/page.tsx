@@ -1,17 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Copy, ExternalLink, FileText } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileText } from "lucide-react";
 import {
   Avatar,
-  Button,
   Card,
   CardBody,
   CardHeader,
   CardTitle,
   Divider,
+  PendingButton,
   ProgressBar,
   StatusBadge,
-  PendingButton,
   StepList,
   ToastButton,
   type Step,
@@ -19,8 +18,7 @@ import {
 import { MobileHeader } from "@/components/app/nav";
 import { RemindButton } from "@/components/app/remind-button";
 import { CopyLinkButton } from "@/components/app/copy-link";
-import { activity, clientById, clientSteps, humanWait } from "@/lib/mock-app";
-import { questions } from "@/lib/mock";
+import { getClient, relativeTime } from "@/lib/queries";
 
 /**
  * B3 — Client detail.
@@ -30,19 +28,49 @@ import { questions } from "@/lib/mock";
  * the client submitted is readable on one page without clicking
  * into six sub-screens.
  */
+
+const EVENT_LABELS: Record<string, string> = {
+  client_created: "Client added",
+  link_sent: "Onboarding link sent",
+  reminder_sent: "Reminder sent",
+  step_completed: "Completed a step",
+  opened: "Opened the onboarding link",
+  completed: "Finished onboarding",
+};
+
 export default async function ClientDetail({
   params,
 }: PageProps<"/app/clients/[id]">) {
   const { id } = await params;
-  const client = clientById(id);
-  if (!client) notFound();
+  const record = await getClient(id);
+  if (!record) notFound();
 
-  const steps: Step[] = clientSteps.map((s, i) => ({
-    id: String(i),
+  const { client, onboarding, steps, events } = record;
+
+  const completed = steps.filter((s) => s.completed_at).length;
+  const firstOpen = steps.find((s) => !s.completed_at);
+
+  const listSteps: Step[] = steps.map((s) => ({
+    id: s.id,
     title: s.title,
-    meta: s.meta,
-    state: s.status as Step["state"],
+    state: s.completed_at
+      ? "complete"
+      : s.id === firstOpen?.id
+        ? "current"
+        : "upcoming",
+    optional: !s.required,
   }));
+
+  // Only render sections the client actually has. A "Files" heading
+  // above nothing reads as broken.
+  const questionnaire = steps.find((s) => s.type === "questionnaire");
+  const answers =
+    (questionnaire?.data?.answers as
+      | { prompt: string; answer: string }[]
+      | undefined) ?? [];
+
+  const infoStep = steps.find((s) => s.type === "info");
+  const info = (infoStep?.data ?? {}) as Record<string, string>;
 
   return (
     <>
@@ -64,27 +92,30 @@ export default async function ClientDetail({
                 <h1 className="text-2xl font-semibold text-ink-900">
                   {client.company}
                 </h1>
-                <StatusBadge status={client.status} />
+                <StatusBadge status={onboarding.status} />
               </div>
               <p className="text-sm text-ink-500">
-                {client.contactName} · {client.email}
+                {client.name ? `${client.name} · ` : ""}
+                {client.email}
               </p>
               <p className="text-sm text-ink-500">
-                Sent {client.sentAt} · Last activity {client.lastActivity}
-                {client.remindersSent > 0 && (
-                  <> · {client.remindersSent} reminders sent</>
-                )}
+                {onboarding.sent_at
+                  ? `Sent ${relativeTime(onboarding.sent_at)}`
+                  : "Not sent yet"}
+                {onboarding.last_activity_at &&
+                  ` · Last activity ${relativeTime(onboarding.last_activity_at)}`}
               </p>
             </div>
           </div>
 
           <div className="flex shrink-0 flex-wrap items-center gap-2">
-            <CopyLinkButton />
-            {client.status !== "completed" && (
+            <CopyLinkButton token={onboarding.token} />
+            {onboarding.status !== "completed" && (
               <RemindButton
+                onboardingId={onboarding.id}
                 client={client.company}
-                contact={client.contactName}
-                remaining={client.total - client.completed}
+                contact={client.name ?? client.company}
+                remaining={steps.length - completed}
                 variant="primary"
               />
             )}
@@ -94,113 +125,87 @@ export default async function ClientDetail({
         {/* min-w-0 on both columns is load-bearing. Grid items default
             to min-width:auto and refuse to shrink below their content's
             intrinsic minimum, so without it a long filename pushes the
-            column past the viewport and the whole page scrolls
-            sideways on mobile. minmax(0,1fr) only covers the lg case. */}
+            column past the viewport and the page scrolls sideways on
+            mobile. minmax(0,1fr) only covers the lg case. */}
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="flex min-w-0 flex-col gap-6">
             <Card>
               <CardHeader>
                 <CardTitle>Progress</CardTitle>
                 <span className="text-sm text-ink-500" data-numeric>
-                  {client.completed} of {client.total}
+                  {completed} of {steps.length}
                 </span>
               </CardHeader>
               <CardBody className="flex flex-col gap-5">
-                <ProgressBar
-                  value={client.completed}
-                  total={client.total}
-                />
-                <StepList steps={steps} />
-                {client.waitingOn && (
-                  <div className="flex items-center gap-2 rounded-md bg-warn-100 px-3 py-2.5 text-sm text-warn-fg">
-                    Waiting on {client.waitingOn} for{" "}
-                    {humanWait(client.waitingHours ?? 0)}
+                <ProgressBar value={completed} total={steps.length} />
+                {steps.length === 0 ? (
+                  <p className="text-sm text-ink-500">
+                    This onboarding has no steps yet — none of your workflow
+                    steps were set up when it was created.
+                  </p>
+                ) : (
+                  <StepList steps={listSteps} />
+                )}
+                {firstOpen && (
+                  <div className="rounded-md bg-warn-100 px-3 py-2.5 text-sm text-warn-fg">
+                    Waiting on {firstOpen.title}
                   </div>
                 )}
               </CardBody>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>What they submitted</CardTitle>
-                <ToastButton
-                  size="sm"
-                  message="Everything copied"
-                  description="Answers, files list and payment details, ready to paste."
-                >
-                  <FileText className="size-3.5" />
-                  Copy all
-                </ToastButton>
-              </CardHeader>
-              <CardBody className="flex flex-col gap-6">
-                <section className="flex flex-col gap-3">
-                  <h3 className="label-caps">Company information</h3>
-                  <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
-                    {[
-                      ["Company", client.company],
-                      ["Contact", client.contactName],
-                      ["Email", client.email],
-                      ["Phone", "+1 415 555 0142"],
-                    ].map(([k, v]) => (
-                      <div key={k} className="flex flex-col">
-                        <dt className="text-xs text-ink-500">{k}</dt>
-                        <dd className="text-sm text-ink-900">{v}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </section>
-
-                <Divider />
-
-                <section className="flex flex-col gap-4">
-                  <h3 className="label-caps">Project questionnaire</h3>
-                  {questions.map((q) => (
-                    <div key={q.id} className="flex flex-col gap-1">
-                      <p className="text-sm font-medium text-ink-700">
-                        {q.prompt}
-                      </p>
-                      <p className="measure text-sm text-ink-600">{q.answer}</p>
-                    </div>
-                  ))}
-                </section>
-
-                <Divider />
-
-                <section className="flex flex-col gap-3">
-                  <h3 className="label-caps">Files</h3>
-                  <ul className="flex flex-col gap-2">
-                    {[
-                      ["northstar-logo.svg", "24 KB"],
-                      ["northstar-brand-guidelines-2025.pdf", "4.2 MB"],
-                      ["q2-campaign-assets.zip", "18.6 MB"],
-                    ].map(([name, size]) => (
-                      <li
-                        key={name}
-                        className="flex items-center gap-3 rounded-md border border-ink-150 px-3 py-2"
-                      >
-                        <FileText className="size-4 shrink-0 text-ink-400" />
-                        <span className="min-w-0 flex-1 truncate text-sm text-ink-900">
-                          {name}
-                        </span>
-                        <span
-                          className="shrink-0 text-xs text-ink-500"
-                          data-numeric
-                        >
-                          {size}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                  <PendingButton
+            {(Object.keys(info).length > 0 || answers.length > 0) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>What they submitted</CardTitle>
+                  <ToastButton
                     size="sm"
-                    className="w-fit"
-                    reason="Available once file storage is connected"
+                    message="Everything copied"
+                    description="Ready to paste wherever you keep client records."
                   >
-                    Download all as zip
-                  </PendingButton>
-                </section>
-              </CardBody>
-            </Card>
+                    <FileText className="size-3.5" />
+                    Copy all
+                  </ToastButton>
+                </CardHeader>
+                <CardBody className="flex flex-col gap-6">
+                  {Object.keys(info).length > 0 && (
+                    <section className="flex flex-col gap-3">
+                      <h3 className="label-caps">Company information</h3>
+                      <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+                        {Object.entries(info).map(([k, v]) => (
+                          <div key={k} className="flex flex-col">
+                            <dt className="text-xs text-ink-500 capitalize">
+                              {k}
+                            </dt>
+                            <dd className="text-sm text-ink-900">{v}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </section>
+                  )}
+
+                  {Object.keys(info).length > 0 && answers.length > 0 && (
+                    <Divider />
+                  )}
+
+                  {answers.length > 0 && (
+                    <section className="flex flex-col gap-4">
+                      <h3 className="label-caps">Questionnaire</h3>
+                      {answers.map((a, i) => (
+                        <div key={i} className="flex flex-col gap-1">
+                          <p className="text-sm font-medium text-ink-700">
+                            {a.prompt}
+                          </p>
+                          <p className="measure text-sm text-ink-600">
+                            {a.answer}
+                          </p>
+                        </div>
+                      ))}
+                    </section>
+                  )}
+                </CardBody>
+              </Card>
+            )}
           </div>
 
           <div className="flex min-w-0 flex-col gap-6">
@@ -209,14 +214,24 @@ export default async function ClientDetail({
                 <CardTitle>Activity</CardTitle>
               </CardHeader>
               <CardBody>
-                <ol className="flex flex-col gap-3.5">
-                  {activity.map((a, i) => (
-                    <li key={i} className="flex flex-col gap-0.5">
-                      <span className="text-sm text-ink-900">{a.text}</span>
-                      <span className="text-xs text-ink-500">{a.at}</span>
-                    </li>
-                  ))}
-                </ol>
+                {events.length === 0 ? (
+                  <p className="text-sm text-ink-500">
+                    Nothing yet. Activity appears as they work through it.
+                  </p>
+                ) : (
+                  <ol className="flex flex-col gap-3.5">
+                    {events.map((e) => (
+                      <li key={e.id} className="flex flex-col gap-0.5">
+                        <span className="text-sm text-ink-900">
+                          {EVENT_LABELS[e.type] ?? e.type}
+                        </span>
+                        <span className="text-xs text-ink-500">
+                          {relativeTime(e.created_at)}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
               </CardBody>
             </Card>
 
@@ -224,16 +239,18 @@ export default async function ClientDetail({
               <CardBody className="flex flex-col gap-3">
                 <span className="label-caps">Their link</span>
                 <span className="font-mono text-xs break-all text-ink-600">
-                  app.preface.co/o/k3Xm9pQr2LwTv8Bn
+                  /o/{onboarding.token}
                 </span>
-                <div className="flex gap-2">
-                  <CopyLinkButton />
-                  <Button asChild size="sm" variant="ghost">
-                    <Link href="/o/demo" target="_blank">
-                      <ExternalLink className="size-3.5" />
-                      Preview
-                    </Link>
-                  </Button>
+                <div className="flex flex-wrap gap-2">
+                  <CopyLinkButton token={onboarding.token} />
+                  <PendingButton
+                    size="sm"
+                    variant="ghost"
+                    reason="Opens their live onboarding once the portal reads real data"
+                  >
+                    <ExternalLink className="size-3.5" />
+                    Preview
+                  </PendingButton>
                 </div>
               </CardBody>
             </Card>

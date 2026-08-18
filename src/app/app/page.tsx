@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Plus } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import {
   Avatar,
   Button,
@@ -12,8 +12,8 @@ import {
 import { AppPage } from "@/components/app/page-shell";
 import { NewClientButton } from "@/components/app/new-client";
 import { RemindButton } from "@/components/app/remind-button";
-import { clients, humanWait, waitingOn } from "@/lib/mock-app";
 import { FirstRun } from "@/components/app/first-run";
+import { getClients, getWaitingOn } from "@/lib/queries";
 
 /**
  * B1 — Waiting on. The app root.
@@ -23,22 +23,32 @@ import { FirstRun } from "@/components/app/first-run";
  * business back: who is stuck, and on what. Sorted longest-wait
  * first, so the most stuck client is impossible to miss.
  */
+
+function humanWait(hours: number | null) {
+  if (hours === null) return "not sent yet";
+  if (hours < 1) return "just now";
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"}`;
+  const d = Math.floor(hours / 24);
+  return `${d} day${d === 1 ? "" : "s"}`;
+}
+
 export default async function WaitingOnPage({
   searchParams,
 }: PageProps<"/app">) {
-  // ?empty=1 renders the day-one state. Kept as a switch so the
-  // first-run experience stays reviewable without wiping data —
-  // it is the screen most likely to decide whether a signup ever
-  // becomes a customer, and it should never go unlooked-at.
   const { empty } = await searchParams;
-  const isFirstRun = empty === "1";
+  const forceEmpty = empty === "1";
 
-  const rows = isFirstRun ? [] : waitingOn;
-  const finishedThisWeek = isFirstRun
+  const [all, waiting] = await Promise.all([getClients(), getWaitingOn()]);
+
+  const rows = forceEmpty ? [] : waiting;
+  const finished = forceEmpty
     ? 0
-    : clients.filter((c) => c.status === "completed").length;
+    : all.filter((c) => c.status === "completed").length;
 
-  if (isFirstRun) {
+  // Day one: no clients at all. Shows the activation checklist
+  // rather than a blank slate — this is the screen that decides
+  // whether a signup ever becomes a customer.
+  if (forceEmpty || all.length === 0) {
     return (
       <AppPage
         title="Welcome to Preface"
@@ -54,7 +64,7 @@ export default async function WaitingOnPage({
       title="Waiting on"
       description={
         rows.length > 0
-          ? `${rows.length} clients haven't finished onboarding.`
+          ? `${rows.length} ${rows.length === 1 ? "client hasn't" : "clients haven't"} finished onboarding.`
           : undefined
       }
       actions={<NewClientButton />}
@@ -87,19 +97,17 @@ export default async function WaitingOnPage({
                     </div>
 
                     {/* The two facts that matter: what's blocking,
-                        and how long it's been blocked.
-
-                        Kept to a single line — the step name truncates
-                        while the duration never does. A wrapping line
-                        here made one card taller than its neighbours
-                        and broke the rhythm of the list. */}
+                        and how long it's been blocked. Kept to one
+                        line — the step name truncates, the duration
+                        never does, so every card stays the same
+                        height and the list keeps its rhythm. */}
                     <p className="flex min-w-0 items-baseline gap-1 text-sm text-ink-600">
                       <span className="shrink-0">Waiting on</span>
                       <span className="truncate font-medium text-ink-900">
-                        {c.waitingOn}
+                        {c.waitingOn ?? "—"}
                       </span>
                       <span className="shrink-0 text-ink-400">
-                        · {humanWait(c.waitingHours ?? 0)}
+                        · {humanWait(c.waitingHours)}
                       </span>
                     </p>
 
@@ -118,8 +126,9 @@ export default async function WaitingOnPage({
 
                 <div className="flex shrink-0 items-center gap-2">
                   <RemindButton
+                    onboardingId={c.onboardingId}
                     client={c.company}
-                    contact={c.contactName}
+                    contact={c.contactName || c.company}
                     remaining={c.total - c.completed}
                   />
                   <Button asChild variant="ghost" size="sm">
@@ -135,10 +144,10 @@ export default async function WaitingOnPage({
         </div>
       )}
 
-      {finishedThisWeek > 0 && (
+      {finished > 0 && (
         <p className="text-sm text-ink-500">
-          <span data-numeric>{finishedThisWeek}</span> clients finished
-          onboarding recently.{" "}
+          <span data-numeric>{finished}</span>{" "}
+          {finished === 1 ? "client has" : "clients have"} finished onboarding.{" "}
           <Link
             href="/app/clients"
             className="font-medium text-accent-600 underline underline-offset-2"

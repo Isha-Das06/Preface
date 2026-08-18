@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Check, Copy, Plus, Send } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Copy, Plus, Send } from "lucide-react";
 import {
   Button,
   Dialog,
@@ -12,36 +12,67 @@ import {
   Modal,
   toast,
 } from "@/components/ui";
+import { createClientAction } from "@/lib/actions";
 
 /**
- * B4 — New client. A modal, not a page: adding a client is three
- * fields, and a full page navigation for three fields makes the
- * product feel heavier than it is.
+ * B4 — New client. A modal, not a page: three fields don't justify
+ * a navigation, and a full page would make the product feel heavier
+ * than it is.
  *
- * Two phases in one dialog — collect, then hand back the link.
- * The link is the deliverable, so it gets its own moment rather
- * than a toast that disappears.
+ * Two phases in one dialog — collect, then hand back the link. The
+ * link is the deliverable, so it gets its own moment rather than a
+ * toast that disappears.
  */
 export function NewClientButton({ full = false }: { full?: boolean }) {
   const [open, setOpen] = useState(false);
-  const [created, setCreated] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const [created, setCreated] = useState<{
+    company: string;
+    token: string;
+    stepCount: number;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [company, setCompany] = useState("");
   const [contact, setContact] = useState("");
   const [email, setEmail] = useState("");
 
   const ready = company.trim() && /.+@.+\..+/.test(email);
-  const link = "app.preface.co/o/k3Xm9pQr2LwTv8Bn";
+  const link = created
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/o/${created.token}`
+    : "";
 
   function reset(next: boolean) {
     setOpen(next);
     if (!next) {
       setTimeout(() => {
         setCreated(null);
+        setError(null);
         setCompany("");
         setContact("");
         setEmail("");
       }, 200);
     }
+  }
+
+  function submit() {
+    setError(null);
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("company", company);
+      fd.set("contact", contact);
+      fd.set("email", email);
+
+      const result = await createClientAction(fd);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setCreated({
+        company: result.company as string,
+        token: result.token as string,
+        stepCount: result.stepCount as number,
+      });
+    });
   }
 
   return (
@@ -55,24 +86,12 @@ export function NewClientButton({ full = false }: { full?: boolean }) {
 
       {created ? (
         <Modal
-          title={`${created} is ready`}
+          title={`${created.company} is ready`}
           description="Send them this link. That's the whole onboarding."
           footer={
-            <>
-              <DialogClose asChild>
-                <Button variant="ghost">Done</Button>
-              </DialogClose>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  reset(false);
-                  toast.success(`Onboarding link emailed to ${email}`);
-                }}
-              >
-                <Send className="size-4" />
-                Email it to them
-              </Button>
-            </>
+            <DialogClose asChild>
+              <Button variant="primary">Done</Button>
+            </DialogClose>
           }
         >
           <div className="flex flex-col gap-3">
@@ -82,15 +101,31 @@ export function NewClientButton({ full = false }: { full?: boolean }) {
               </span>
               <Button
                 size="sm"
-                onClick={() => toast.success("Link copied")}
+                onClick={() => {
+                  navigator.clipboard?.writeText(link).catch(() => {});
+                  toast.success("Link copied");
+                }}
               >
                 <Copy className="size-3.5" />
                 Copy
               </Button>
             </div>
-            <p className="text-sm text-ink-500">
-              Or send it yourself, however you normally would.
-            </p>
+
+            {created.stepCount === 0 ? (
+              // Honest rather than cheerful: a link with no steps is
+              // a dead end, and the fix is one screen away.
+              <p className="text-sm text-warn-fg">
+                None of your steps are set up yet, so this link is empty. Add
+                your agreement text or questions in Workflow, then create the
+                client again.
+              </p>
+            ) : (
+              <p className="text-sm text-ink-500">
+                They'll see {created.stepCount} step
+                {created.stepCount === 1 ? "" : "s"}. Send it however you
+                normally would — email, WhatsApp, Slack.
+              </p>
+            )}
           </div>
         </Modal>
       ) : (
@@ -105,7 +140,8 @@ export function NewClientButton({ full = false }: { full?: boolean }) {
               <Button
                 variant="primary"
                 disabled={!ready}
-                onClick={() => setCreated(company)}
+                loading={pending}
+                onClick={submit}
               >
                 Create link
               </Button>
@@ -140,6 +176,12 @@ export function NewClientButton({ full = false }: { full?: boolean }) {
                 placeholder="sarah@northstarlabs.co"
               />
             </Field>
+
+            {error && (
+              <p role="alert" className="text-sm text-danger-600">
+                {error}
+              </p>
+            )}
           </div>
         </Modal>
       )}
