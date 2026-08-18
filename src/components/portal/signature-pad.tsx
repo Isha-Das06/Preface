@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useFormStatus } from "react-dom";
 import { Check, Lock } from "lucide-react";
 import { Button, Card, CardBody, Field, Input } from "@/components/ui";
 
@@ -12,25 +13,33 @@ import { Button, Card, CardBody, Field, Input } from "@/components/ui";
  * exact document shown is what actually satisfies ESIGN/UETA and
  * eIDAS for ordinary commercial agreements. A finger-drawn scrawl
  * on a phone looks more official and proves less.
+ *
+ * The fields post with the surrounding form. Local state exists only
+ * for the live preview and the enable rule — the values that count
+ * are read from the FormData server-side.
  */
 export function SignaturePad({
   defaultName,
   defaultEmail,
   signed,
   signedAt,
+  signedName,
+  signedEmail,
 }: {
   defaultName: string;
   defaultEmail: string;
   signed?: boolean;
   signedAt?: string;
+  signedName?: string;
+  signedEmail?: string;
 }) {
-  const [name, setName] = useState(signed ? defaultName : "");
-  const [email, setEmail] = useState(signed ? defaultEmail : "");
-  const [done, setDone] = useState(Boolean(signed));
+  const [name, setName] = useState(defaultName);
+  const [email, setEmail] = useState(defaultEmail);
+  const { pending } = useFormStatus();
 
   const ready = name.trim().length > 1 && /.+@.+\..+/.test(email);
 
-  if (done) {
+  if (signed) {
     return (
       <Card className="border-accent-300 bg-accent-50">
         <CardBody className="flex flex-col gap-4">
@@ -44,29 +53,25 @@ export function SignaturePad({
               typed name pretending to be handwritten is less credible
               than one presented honestly on a signature rule. */}
           <div className="flex flex-col gap-1.5 border-b border-ink-300 pb-2">
-            <span className="text-2xl text-ink-900">{name}</span>
+            <span className="text-2xl text-ink-900">{signedName}</span>
           </div>
 
           <dl className="flex flex-col gap-1 text-sm text-ink-500">
             <div className="flex gap-2">
               <dt>Signed by</dt>
-              <dd className="text-ink-700">{name}</dd>
+              <dd className="text-ink-700">{signedName}</dd>
             </div>
             <div className="flex gap-2">
               <dt>Email</dt>
-              <dd className="text-ink-700">{email}</dd>
+              <dd className="text-ink-700">{signedEmail}</dd>
             </div>
             <div className="flex gap-2">
               <dt>Date</dt>
               <dd className="text-ink-700" data-numeric>
-                {signedAt ?? "just now"}
+                {signedAt}
               </dd>
             </div>
           </dl>
-
-          <p className="text-sm text-ink-500">
-            A copy has been emailed to you.
-          </p>
         </CardBody>
       </Card>
     );
@@ -85,18 +90,18 @@ export function SignaturePad({
         <div className="flex flex-col gap-4">
           <Field label="Full name" required>
             <Input
+              name="signerName"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Sarah Chen"
               autoComplete="name"
             />
           </Field>
           <Field label="Email" required>
             <Input
+              name="signerEmail"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="sarah@northstarlabs.co"
               autoComplete="email"
             />
           </Field>
@@ -115,15 +120,16 @@ export function SignaturePad({
         )}
 
         <p className="text-sm text-ink-500">
-          By typing your name you agree to the terms above. We'll record the
-          time and send you a copy.
+          By typing your name you agree to the terms above. We record the time
+          and keep a copy of exactly what you signed.
         </p>
 
         <Button
+          type="submit"
           variant="primary"
           size="lg"
           disabled={!ready}
-          onClick={() => setDone(true)}
+          loading={pending}
           className="w-full"
         >
           <Lock className="size-4" />

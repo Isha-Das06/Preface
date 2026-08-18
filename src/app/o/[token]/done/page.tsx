@@ -1,7 +1,8 @@
+import { redirect } from "next/navigation";
 import { Check } from "lucide-react";
 import { Card, CardBody } from "@/components/ui";
 import { PortalShell } from "@/components/portal/portal-shell";
-import { business, client, scheduling, steps } from "@/lib/mock";
+import { getPortal } from "@/lib/portal";
 
 /**
  * C8 — Complete.
@@ -11,9 +12,20 @@ import { business, client, scheduling, steps } from "@/lib/mock";
  * "so when does something happen" — answering it here is what stops
  * the follow-up email.
  */
-export default function DoneStep() {
+export default async function DoneStep({
+  params,
+}: PageProps<"/o/[token]/done">) {
+  const { token } = await params;
+  const portal = await getPortal(token);
+  if (!portal) redirect(`/o/${token}/expired`);
+
+  const { business, client, steps } = portal;
+  const firstName = (client.name ?? client.company).split(" ")[0];
+  const completed = steps.filter((s) => s.completedAt);
+  const outstanding = steps.filter((s) => s.required && !s.completedAt);
+
   return (
-    <PortalShell business={business}>
+    <PortalShell business={business} token={token}>
       <div className="flex flex-1 flex-col justify-center gap-8 py-8 animate-step-in">
         <div className="flex flex-col items-center gap-5 text-center">
           <span className="flex size-14 items-center justify-center rounded-full bg-accent-100">
@@ -22,8 +34,8 @@ export default function DoneStep() {
           <div className="flex flex-col gap-2">
             <h1 className="text-3xl font-semibold text-ink-900">All done</h1>
             <p className="measure-prose text-base text-ink-500">
-              Thanks, {client.contactName.split(" ")[0]}. {business.name} has
-              everything they need to get started.
+              Thanks, {firstName}. {business.name} has everything they need to
+              get started.
             </p>
           </div>
         </div>
@@ -33,18 +45,15 @@ export default function DoneStep() {
             <div className="flex flex-col gap-1.5">
               <span className="label-caps">What happens next</span>
               <p className="text-base text-ink-700">
-                Your team will be in touch before your kickoff call on{" "}
-                <strong className="font-medium text-ink-900">
-                  {scheduling.booked.date} at {scheduling.booked.time}
-                </strong>
-                .
+                {business.name} has been told you&apos;re finished and will be
+                in touch shortly.
               </p>
             </div>
 
             <ul className="flex flex-col gap-2 border-t border-ink-150 pt-4">
-              {steps.map((s) => (
+              {completed.map((s) => (
                 <li
-                  key={s.slug}
+                  key={s.id}
                   className="flex items-center gap-2.5 text-base text-ink-600"
                 >
                   <Check
@@ -58,9 +67,15 @@ export default function DoneStep() {
           </CardBody>
         </Card>
 
+        {outstanding.length > 0 && (
+          <p className="text-center text-sm text-ink-500">
+            Still outstanding: {outstanding.map((s) => s.title).join(", ")}.
+          </p>
+        )}
+
         <p className="text-center text-sm text-ink-500">
-          A copy of your signed agreement and receipt is in your email. Questions?
-          Just reply to it — it goes straight to {business.name}.
+          Questions? Email {business.reply_to_email ?? business.name} and it
+          goes straight to them.
         </p>
       </div>
     </PortalShell>

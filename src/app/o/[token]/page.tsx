@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import {
   Button,
@@ -9,13 +10,8 @@ import {
   type Step,
 } from "@/components/ui";
 import { PortalShell } from "@/components/portal/portal-shell";
-import {
-  business,
-  client,
-  completedCount,
-  currentStep,
-  steps,
-} from "@/lib/mock";
+import { getPortal } from "@/lib/portal";
+import { recordOpen } from "@/lib/portal-actions";
 
 /**
  * C1 — Welcome / progress. The money shot.
@@ -30,47 +26,42 @@ import {
  * are in progress.
  */
 
+/** Rough remaining time. Honest enough to orient, vague enough not to nag. */
+function minutesLeft(remaining: number) {
+  return Math.max(2, remaining * 3);
+}
+
 export default async function PortalWelcome({
-  searchParams,
-}: {
-  searchParams: Promise<{ first?: string }>;
-}) {
-  const { first } = await searchParams;
-  const isFirstVisit = first === "1";
+  params,
+}: PageProps<"/o/[token]">) {
+  const { token } = await params;
+  const portal = await getPortal(token);
+  if (!portal) redirect(`/o/${token}/expired`);
 
-  // A dependency only locks while its prerequisite is unfinished.
-  // Resolved here rather than baked into the data so the lock
-  // disappears the moment the client satisfies it.
-  const isDone = (slug: string) =>
-    steps.find((s) => s.slug === slug)?.status === "complete";
+  const { business, client, steps, completedCount, welcomeMessage } = portal;
 
-  const listSteps: Step[] = steps.map((s) => {
-    const blocked =
-      Boolean(s.dependsOn) && (isFirstVisit || !isDone(s.dependsOn!));
+  // First visit is a real fact now, not a query string: the link has
+  // never been opened before.
+  const isFirstVisit = !portal.onboarding.started_at;
+  await recordOpen(token);
 
-    return {
-      id: s.slug,
-      title: s.title,
-      meta: isFirstVisit ? undefined : s.meta,
-      optional: s.optional,
-      state: isFirstVisit ? "upcoming" : s.status,
-      href: `/o/demo/${s.slug}`,
-      lockedReason: blocked ? s.lockedReason : undefined,
-    };
-  });
+  const listSteps: Step[] = steps.map((s) => ({
+    id: s.slug,
+    title: s.title,
+    meta: stepMeta(s.state, s.completedAt),
+    optional: !s.required,
+    state: s.state,
+    href: `/o/${token}/${s.slug}`,
+    lockedReason: s.lockedReason,
+  }));
 
-  const done = isFirstVisit ? 0 : completedCount;
   // Continue must never point at a locked step, or the primary
   // action on the money shot leads to a dead end.
-  const firstOpen = listSteps.find(
-    (s) => s.state !== "complete" && !s.lockedReason,
-  );
-  const next =
-    steps.find((s) => s.slug === firstOpen?.id) ??
-    (isFirstVisit ? steps[0] : (currentStep ?? steps[0]));
+  const next = steps.find((s) => s.state === "current") ?? steps[0];
+  const allDone = steps.length > 0 && completedCount === steps.length;
 
   return (
-    <PortalShell business={business}>
+    <PortalShell business={business} token={token}>
       <div className="flex flex-1 flex-col gap-8 pt-2 animate-step-in">
         <div className="flex flex-col gap-3">
           <h1 className="text-3xl font-semibold text-ink-900">
@@ -78,7 +69,7 @@ export default async function PortalWelcome({
           </h1>
           <p className="measure-prose text-base text-ink-500">
             {isFirstVisit
-              ? business.welcomeMessage
+              ? welcomeMessage
               : "Here's where you got to. Pick up any time — everything you've entered is saved."}
           </p>
         </div>
@@ -88,15 +79,18 @@ export default async function PortalWelcome({
             <div className="flex flex-col gap-2.5">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-sm font-medium text-ink-700">
-                  <span data-numeric>{done}</span> of{" "}
+                  <span data-numeric>{completedCount}</span> of{" "}
                   <span data-numeric>{steps.length}</span> complete
                 </span>
-                <span className="text-sm text-ink-500">
-                  About {isFirstVisit ? 15 : 5} minutes left
-                </span>
+                {!allDone && (
+                  <span className="text-sm text-ink-500">
+                    About {minutesLeft(steps.length - completedCount)} minutes
+                    left
+                  </span>
+                )}
               </div>
               <ProgressBar
-                value={done}
+                value={completedCount}
                 total={steps.length}
                 label="Onboarding progress"
               />
@@ -107,11 +101,19 @@ export default async function PortalWelcome({
         </Card>
 
         <div className="flex flex-col gap-4">
-          <Button asChild variant="primary" size="lg" className="w-full">
-            <Link href={`/o/demo/${next.slug}`}>
-              {isFirstVisit ? "Get started" : `Continue — ${next.title}`}
-            </Link>
-          </Button>
+          {allDone ? (
+            <Button asChild variant="primary" size="lg" className="w-full">
+              <Link href={`/o/${token}/done`}>See what happens next</Link>
+            </Button>
+          ) : (
+            next && (
+              <Button asChild variant="primary" size="lg" className="w-full">
+                <Link href={`/o/${token}/${next.slug}`}>
+                  {isFirstVisit ? "Get started" : `Continue — ${next.title}`}
+                </Link>
+              </Button>
+            )
+          )}
 
           {/* Reassurance, not a disclaimer. The client is about to
               hand over documents, a signature and a payment. */}
@@ -126,4 +128,12 @@ export default async function PortalWelcome({
       </div>
     </PortalShell>
   );
+}
+
+function stepMeta(state: string, completedAt: string | null) {
+  if (state !== "complete" || !completedAt) return undefined;
+  return `Done ${new Date(completedAt).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+  })}`;
 }

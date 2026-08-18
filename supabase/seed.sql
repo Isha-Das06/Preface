@@ -35,20 +35,38 @@ insert into workflows (id, business_id, name)
 values (wf_id, biz_id, 'New client onboarding')
 on conflict (id) do nothing;
 
--- Eight steps, matching the marketing-agency template. Two are
--- unconfigured on purpose: the workflow must stay sendable without
--- them, and the builder should show that state.
+-- Eight steps, matching the marketing-agency template, each with the
+-- config its screen actually reads.
+--
+-- These used to be seeded as '{}'. That was invisible while the
+-- portal ran on mock data and became a broken demo the moment it read
+-- real rows: an info step with no fields, a questionnaire with no
+-- questions, an agreement with nothing to sign. Seed data has to be
+-- representative or it only proves the page renders.
+--
+-- All eight are configured here, including the agreement text, so the
+-- demo tenant exercises the whole flow. A real signup still gets the
+-- template's unconfigured agreement/payment/scheduling steps, because
+-- the agreement text is always the customer's own.
 insert into workflow_steps
   (workflow_id, position, type, title, description, required, enabled, configured, requires_previous, config)
 values
-  (wf_id, 0, 'instructions', 'Welcome', 'A short note before they start.', false, true, true, false, '{}'),
-  (wf_id, 1, 'info', 'Company information', 'So we know who to contact and how to reach you.', true, true, true, false, '{}'),
-  (wf_id, 2, 'questionnaire', 'Project questionnaire', 'Five questions about the work ahead.', true, true, true, false, '{}'),
-  (wf_id, 3, 'files', 'Brand assets', 'Upload what you have.', true, true, true, false, '{}'),
-  (wf_id, 4, 'checklist', 'Account access', 'Add us to the accounts we will be working in.', true, true, true, false, '{}'),
-  (wf_id, 5, 'agreement', 'Service agreement', 'Please read through, then sign at the bottom.', true, true, false, false, '{}'),
-  (wf_id, 6, 'payment', 'Deposit', 'Paid securely to Acme Agency.', true, true, false, true, '{}'),
-  (wf_id, 7, 'scheduling', 'Kickoff call', 'Pick a time that works for you.', false, true, true, false, '{}');
+  (wf_id, 0, 'instructions', 'Welcome', 'A short note before they start.', false, true, true, false,
+   '{"body":"We are glad to have you on board. Before we start, there are a few things we need from you. It takes about 15 minutes and you can stop and come back any time."}'::jsonb),
+  (wf_id, 1, 'info', 'Company information', 'So we know who to contact and how to reach you.', true, true, true, false,
+   '{"fields":[{"name":"company","label":"Company name","type":"text","required":true},{"name":"contact","label":"Your name","type":"text","required":true},{"name":"email","label":"Email","type":"email","required":true},{"name":"phone","label":"Phone","type":"tel","required":false},{"name":"website","label":"Website","type":"url","required":false},{"name":"address","label":"Billing address","type":"textarea","required":false}]}'::jsonb),
+  (wf_id, 2, 'questionnaire', 'Project questionnaire', 'Five questions about the work ahead.', true, true, true, false,
+   '{"questions":[{"prompt":"What does your business do, in one or two sentences?","type":"long"},{"prompt":"Who is your ideal customer?","type":"long"},{"prompt":"What does success look like 90 days from now?","type":"long"},{"prompt":"Which channels are working today? Which are not?","type":"long"},{"prompt":"Who has final approval on creative?","type":"short"}]}'::jsonb),
+  (wf_id, 3, 'files', 'Brand assets', 'Upload what you have.', true, true, true, false,
+   '{"requests":[{"key":"logo","label":"Logo","hint":"SVG or PNG, ideally on a transparent background","required":true},{"key":"guidelines","label":"Brand guidelines","hint":"PDF","required":false},{"key":"photography","label":"Product photography","hint":"Anything you have - we can work with rough shots","required":false},{"key":"existing","label":"Existing ad creative","hint":"So we do not repeat what has already been tried","required":false}]}'::jsonb),
+  (wf_id, 4, 'checklist', 'Account access', 'Add us to the accounts we will be working in.', true, true, true, false,
+   '{"items":[{"key":"google-ads","label":"Google Ads","instruction":"Tools & Settings -> Access and security -> invite ads@acmeagency.co as Standard.","required":true},{"key":"ga4","label":"Google Analytics 4","instruction":"Admin -> Property access management -> add ads@acmeagency.co as Editor.","required":true},{"key":"meta","label":"Meta Business Manager","instruction":"Business Settings -> Partners -> Add partner -> enter our ID 402 998 117 431.","required":true},{"key":"shopify","label":"Shopify","instruction":"Settings -> Users and permissions -> invite ads@acmeagency.co with Reports access.","required":false}]}'::jsonb),
+  (wf_id, 5, 'agreement', 'Service agreement', 'Please read through, then sign at the bottom.', true, true, true, false,
+   '{"body":[{"heading":"1. Scope of work","text":"Acme Agency will provide marketing strategy, campaign design, and campaign management services as described in the accompanying proposal. Any work beyond that scope will be agreed in writing before it begins."},{"heading":"2. Term","text":"This agreement begins on the effective date and continues for an initial term of six months. Either party may end it with 30 days written notice."},{"heading":"3. Fees and payment","text":"The total engagement fee is $5,000.00 per month. A deposit of $2,500.00 is due before work begins. Invoices are issued monthly in advance and are payable within 14 days."},{"heading":"4. Ownership","text":"On full payment, the client owns all final deliverables produced under this agreement. Acme Agency retains ownership of its underlying tools, templates and know-how."},{"heading":"5. Confidentiality","text":"Each party will keep the other non-public information confidential and use it only to perform this agreement. This obligation continues for two years after the agreement ends."},{"heading":"6. Liability","text":"Neither party is liable for indirect or consequential loss. Each party total liability under this agreement is limited to the fees paid in the three months before the claim arose."}]}'::jsonb),
+  (wf_id, 6, 'payment', 'Deposit', 'Paid securely to Acme Agency.', true, true, true, true,
+   '{"amountCents":250000,"currency":"usd","description":"Project deposit"}'::jsonb),
+  (wf_id, 7, 'scheduling', 'Kickoff call', 'Pick a time that works for you.', false, true, true, false,
+   '{"url":"https://cal.com/acmeagency/kickoff","duration":"45 minutes","format":"Video call"}'::jsonb);
 -- No ON CONFLICT here: workflow_steps' unique constraint is
 -- DEFERRABLE, and Postgres refuses a deferrable constraint as an
 -- ON CONFLICT arbiter (SQLSTATE 55000). The seed only ever runs

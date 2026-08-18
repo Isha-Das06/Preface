@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "@/components/ui";
+import { setChecklistItem } from "@/lib/portal-actions";
 
 export interface ChecklistItem {
   key: string;
@@ -24,11 +26,34 @@ export interface ChecklistItem {
  * Each item tracks its own state so the business's waiting-on view
  * can say "waiting on: Meta access" rather than just "waiting on:
  * account access".
+ *
+ * Ticks write immediately and optimistically, and roll back if the
+ * write fails — a checkbox that stays ticked after a failed save is
+ * how a client believes they are done when the business sees nothing.
  */
-export function AccessChecklist({ items }: { items: ChecklistItem[] }) {
+export function AccessChecklist({
+  token,
+  items,
+}: {
+  token: string;
+  items: ChecklistItem[];
+}) {
   const [state, setState] = useState<Record<string, boolean>>(
     Object.fromEntries(items.map((i) => [i.key, i.done])),
   );
+  const [, startTransition] = useTransition();
+
+  function toggle(key: string, next: boolean) {
+    setState((prev) => ({ ...prev, [key]: next }));
+
+    startTransition(async () => {
+      const result = await setChecklistItem(token, key, next);
+      if (result?.error) {
+        setState((prev) => ({ ...prev, [key]: !next }));
+        toast.error("That didn't save", { description: result.error });
+      }
+    });
+  }
 
   return (
     <ul className="flex flex-col gap-3">
@@ -49,27 +74,23 @@ export function AccessChecklist({ items }: { items: ChecklistItem[] }) {
               <input
                 type="checkbox"
                 checked={done}
-                onChange={(e) =>
-                  setState((p) => ({ ...p, [item.key]: e.target.checked }))
-                }
+                onChange={(e) => toggle(item.key, e.target.checked)}
                 className="sr-only"
               />
               <span
                 aria-hidden
                 className={cn(
-                  "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-[4px] border",
+                  "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border",
                   "transition-colors duration-(--dur-fast)",
                   done
-                    ? "border-accent-600 bg-accent-600"
+                    ? "border-accent-600 bg-accent-600 text-on-accent"
                     : "border-ink-300 bg-surface",
                 )}
               >
-                {done && (
-                  <Check className="size-3.5 text-on-accent" strokeWidth={3} />
-                )}
+                {done && <Check className="size-3.5" strokeWidth={3} />}
               </span>
 
-              <span className="flex min-w-0 flex-col gap-1">
+              <span className="flex flex-col gap-1">
                 <span className="text-base font-medium text-ink-900">
                   {item.label}
                   {!item.required && (
@@ -78,7 +99,9 @@ export function AccessChecklist({ items }: { items: ChecklistItem[] }) {
                     </span>
                   )}
                 </span>
-                <span className="text-sm text-ink-600">{item.instruction}</span>
+                <span className="measure-prose text-sm text-ink-600">
+                  {item.instruction}
+                </span>
               </span>
             </label>
           </li>

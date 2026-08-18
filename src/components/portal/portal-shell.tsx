@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import type { Business } from "@/lib/mock";
+import type { Business } from "@/lib/supabase/types";
 
 /**
  * The portal's outer frame.
@@ -32,10 +32,10 @@ function Monogram({ name }: { name: string }) {
 
 export function PortalHeader({
   business,
-  href = "/o/demo",
+  href,
 }: {
   business: Business;
-  href?: string;
+  href: string;
 }) {
   return (
     <header className="flex items-center gap-3 py-6">
@@ -45,10 +45,10 @@ export function PortalHeader({
         // edge while giving the link a 44px touch target.
         className="-mx-2 flex min-h-11 items-center gap-3 rounded-md px-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus)"
       >
-        {business.logoUrl ? (
+        {business.logo_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={business.logoUrl}
+            src={business.logo_url}
             alt={business.name}
             className="h-9 w-auto max-w-[160px] object-contain"
           />
@@ -65,10 +65,13 @@ export function PortalHeader({
 
 export function PortalShell({
   business,
+  token,
   children,
   wide = false,
 }: {
   business: Business;
+  /** Every link out of the shell has to carry the token. */
+  token: string;
   children: React.ReactNode;
   wide?: boolean;
 }) {
@@ -82,7 +85,7 @@ export function PortalShell({
           wide ? "max-w-[680px]" : "max-w-[560px]",
         )}
       >
-        <PortalHeader business={business} />
+        <PortalHeader business={business} href={`/o/${token}`} />
         <main className="flex flex-1 flex-col">{children}</main>
       </div>
     </div>

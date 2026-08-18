@@ -33,7 +33,11 @@ const EVENT_LABELS: Record<string, string> = {
   client_created: "Client added",
   link_sent: "Onboarding link sent",
   reminder_sent: "Reminder sent",
+  link_opened: "Opened the link",
   step_completed: "Completed a step",
+  email_verified: "Verified their email",
+  agreement_signed: "Signed the agreement",
+  onboarding_completed: "Finished onboarding",
   opened: "Opened the onboarding link",
   completed: "Finished onboarding",
 };

@@ -1,50 +1,33 @@
-import { Field, Input, Textarea } from "@/components/ui";
+import { redirect } from "next/navigation";
 import { PortalShell } from "@/components/portal/portal-shell";
-import { StepFrame } from "@/components/portal/step-frame";
-import { business, questions, stepBySlug, steps } from "@/lib/mock";
+import { QuestionsForm, type Question } from "@/components/portal/questions-form";
+import { getPortal, stepBySlug } from "@/lib/portal";
 
-/**
- * C3 — Questionnaire.
- *
- * All questions on one scrollable page rather than a wizard. Five
- * screens with one question each feels longer than one screen with
- * five, and hides how much is left — which is the thing that makes
- * people abandon halfway.
- */
-export default function QuestionsStep() {
-  const step = stepBySlug("questions")!;
-  const index = steps.findIndex((s) => s.slug === "questions") + 1;
+/** C3 — Questionnaire. */
+export default async function QuestionsStep({
+  params,
+}: PageProps<"/o/[token]/questions">) {
+  const { token } = await params;
+  const portal = await getPortal(token);
+  if (!portal) redirect(`/o/${token}/expired`);
+
+  const step = stepBySlug(portal, "questions");
+  if (!step) redirect(`/o/${token}`);
+
+  const questions = (step.config.questions ?? []) as Question[];
+  const answers = (step.data.answers ?? {}) as Record<string, string>;
 
   return (
-    <PortalShell business={business}>
-      <StepFrame
-        index={index}
-        total={steps.length}
-        title="About the project"
-        description={`There are ${questions.length} questions. Answers save as you type — you can leave and come back.`}
-        continueHref="/o/demo/files"
-      >
-        <ol className="flex flex-col gap-8">
-          {questions.map((q, i) => (
-            <li key={q.id} className="flex flex-col gap-2.5">
-              <Field
-                label={q.prompt}
-                hint={
-                  <span data-numeric>
-                    {i + 1}/{questions.length}
-                  </span>
-                }
-              >
-                {q.type === "long" ? (
-                  <Textarea defaultValue={q.answer} rows={4} />
-                ) : (
-                  <Input defaultValue={q.answer} />
-                )}
-              </Field>
-            </li>
-          ))}
-        </ol>
-      </StepFrame>
+    <PortalShell business={portal.business} token={token}>
+      <QuestionsForm
+        token={token}
+        questions={questions}
+        answers={answers}
+        index={step.displayIndex}
+        total={portal.steps.length}
+        title={step.title}
+        saved={Boolean(step.completedAt)}
+      />
     </PortalShell>
   );
 }

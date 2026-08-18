@@ -1,42 +1,41 @@
-import { Field, Input, Textarea } from "@/components/ui";
+import { redirect } from "next/navigation";
 import { PortalShell } from "@/components/portal/portal-shell";
-import { StepFrame } from "@/components/portal/step-frame";
-import { business, infoFields, stepBySlug, steps } from "@/lib/mock";
+import { InfoForm, type InfoField } from "@/components/portal/info-form";
+import { getPortal, stepBySlug } from "@/lib/portal";
 
 /** C2 — Company information. */
-export default function InfoStep() {
-  const step = stepBySlug("info")!;
-  const index = steps.findIndex((s) => s.slug === "info") + 1;
+export default async function InfoStep({ params }: PageProps<"/o/[token]/info">) {
+  const { token } = await params;
+  const portal = await getPortal(token);
+  if (!portal) redirect(`/o/${token}/expired`);
+
+  const step = stepBySlug(portal, "info");
+  if (!step) redirect(`/o/${token}`);
+
+  const fields = (step.config.fields ?? []) as InfoField[];
+  const values = (step.data.values ?? {}) as Record<string, string>;
+
+  // Pre-fill from the client record the business already has, so the
+  // first two fields are usually already right.
+  const seeded: Record<string, string> = {
+    company: portal.client.company,
+    contact: portal.client.name ?? "",
+    email: portal.client.email,
+    ...values,
+  };
 
   return (
-    <PortalShell business={business}>
-      <StepFrame
-        index={index}
-        total={steps.length}
+    <PortalShell business={portal.business} token={token}>
+      <InfoForm
+        token={token}
+        fields={fields}
+        values={seeded}
+        index={step.displayIndex}
+        total={portal.steps.length}
         title={step.title}
-        description={step.description}
-        continueHref="/o/demo/questions"
-      >
-        {/* Single column even on desktop. A 560px measure with two
-            columns of short fields reads as a form to get through;
-            one column reads as a conversation. */}
-        <div className="flex flex-col gap-5">
-          {infoFields.map((f) => (
-            <Field
-              key={f.name}
-              label={f.label}
-              required={f.required}
-              hint={f.required ? undefined : "Optional"}
-            >
-              {f.type === "textarea" ? (
-                <Textarea defaultValue={f.value} rows={3} />
-              ) : (
-                <Input type={f.type} defaultValue={f.value} />
-              )}
-            </Field>
-          ))}
-        </div>
-      </StepFrame>
+        description={step.description ?? undefined}
+        saved={Boolean(step.completedAt)}
+      />
     </PortalShell>
   );
 }

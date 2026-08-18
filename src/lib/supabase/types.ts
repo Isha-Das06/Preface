@@ -71,6 +71,9 @@ export interface Onboarding {
   token: string;
   status: OnboardingStatus;
   email_verified_at: string | null;
+  verification_code: string | null;
+  verification_expires_at: string | null;
+  verification_attempts: number;
   reminders_paused_until: string | null;
   reminder_count: number;
   sent_at: string | null;
