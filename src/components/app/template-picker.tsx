@@ -1,15 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, RadioCard, RadioGroup, toast } from "@/components/ui";
+import { applyTemplate } from "@/lib/actions";
 
 export function TemplatePicker({
   templates,
 }: {
-  templates: { id: string; name: string; description: string; stepCount: number }[];
+  templates: {
+    id: string;
+    name: string;
+    description: string;
+    stepCount: number;
+  }[];
 }) {
   const [choice, setChoice] = useState("marketing");
+  const [pending, start] = useTransition();
   const router = useRouter();
 
   return (
@@ -28,10 +35,28 @@ export function TemplatePicker({
       <Button
         variant="primary"
         className="w-full sm:w-fit"
-        onClick={() => {
-          toast.success("Template applied");
-          router.push("/app/workflow");
-        }}
+        loading={pending}
+        onClick={() =>
+          start(async () => {
+            const result = await applyTemplate(choice);
+
+            // Only claim it worked once it has. This button used to
+            // toast "Template applied" and navigate without writing
+            // anything at all.
+            if (result.error) {
+              toast.error("Couldn't apply that template", {
+                description: result.error,
+              });
+              return;
+            }
+
+            toast.success("Template applied", {
+              description: `${result.stepCount} steps are ready to edit.`,
+            });
+            router.push("/app/workflow");
+            router.refresh();
+          })
+        }
       >
         Use this template
       </Button>

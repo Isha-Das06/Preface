@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "./supabase/server";
 import { sendInvitation, sendReminderEmail } from "./emails";
+import { getTemplate } from "./templates";
 import type {
   Business,
   Client,
@@ -401,4 +402,64 @@ export async function updateSettings(
 
   revalidatePath("/app", "layout");
   return { ok: true };
+}
+
+/**
+ * Replace the workflow's steps with a template's.
+ *
+ * This used to be a toast and a redirect with no write behind it —
+ * the picker reported "Template applied" and did nothing at all.
+ *
+ * Only workflow_steps are touched. Steps already snapshotted onto a
+ * sent onboarding are left exactly as they were, which is the whole
+ * point of snapshotting: changing your template must never rewrite a
+ * questionnaire a client is halfway through.
+ */
+export async function applyTemplate(templateId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const { data: workflow } = await supabase
+    .from("workflows")
+    .select("id")
+    .maybeSingle();
+
+  // RLS scopes this to the caller's business, so no workflow means
+  // they have no business yet rather than "someone else's workflow".
+  if (!workflow) {
+    return { error: "Finish setting up your business first." };
+  }
+
+  const workflowId = (workflow as { id: string }).id;
+  const template = getTemplate(templateId);
+
+  const { error: delErr } = await supabase
+    .from("workflow_steps")
+    .delete()
+    .eq("workflow_id", workflowId);
+  if (delErr) {
+    console.error("applyTemplate: clearing steps failed", delErr);
+    return { error: "Couldn't replace your steps." };
+  }
+
+  const { error: insErr } = await supabase.from("workflow_steps").insert(
+    template.steps.map((s, i) => ({
+      workflow_id: workflowId,
+      position: i,
+      type: s.type,
+      title: s.title,
+      description: s.description ?? null,
+      required: s.required,
+      enabled: true,
+      configured: s.configured,
+      requires_previous: s.requiresPrevious ?? false,
+      config: s.config ?? {},
+    })),
+  );
+  if (insErr) {
+    console.error("applyTemplate: inserting steps failed", insErr);
+    return { error: "Couldn't add the template's steps." };
+  }
+
+  revalidatePath("/app", "layout");
+  return { ok: true, stepCount: template.steps.length };
 }

@@ -76,6 +76,39 @@ export async function completeSetup(formData: FormData): Promise<AuthResult> {
 
   if (!name) return { error: "Your business needs a name." };
 
+  const failed = await provision(name, templateId);
+  if (failed) return failed;
+
+  revalidatePath("/app", "layout");
+  redirect("/app/workflow");
+}
+
+/**
+ * "Skip for now" on the first-run screen.
+ *
+ * It still provisions. Previously this was a plain link into the app,
+ * which left the account with no business, no workflow and no `users`
+ * row — so RLS matched nothing, every screen fell back to an empty
+ * state, and applying a template had nothing to attach to. Skipping a
+ * question should cost you a placeholder name, not a working account.
+ */
+export async function skipSetup(): Promise<AuthResult> {
+  // Deliberately obviously a stand-in, so it reads as "set this"
+  // rather than as a real name. Not exported: a "use server" file may
+  // only export async functions, and exporting a constant from one
+  // silently breaks every import of the module.
+  const failed = await provision("My business", "scratch");
+  if (failed) return failed;
+
+  revalidatePath("/app", "layout");
+  redirect("/app/workflow?named=0");
+}
+
+/** Creates business + membership + workflow + steps, or explains why not. */
+async function provision(
+  name: string,
+  templateId: string,
+): Promise<AuthResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -106,7 +139,7 @@ export async function completeSetup(formData: FormData): Promise<AuthResult> {
   });
 
   if (bizErr) {
-    console.error("completeSetup: business insert failed", bizErr);
+    console.error("provision: business insert failed", bizErr);
     return { error: "Couldn't create your business." };
   }
 
@@ -114,7 +147,7 @@ export async function completeSetup(formData: FormData): Promise<AuthResult> {
     .from("users")
     .insert({ id: user.id, business_id: businessId, email: user.email! });
   if (userErr) {
-    console.error("completeSetup: users insert failed", userErr);
+    console.error("provision: users insert failed", userErr);
     return { error: "Couldn't finish setting up your account." };
   }
 
@@ -126,7 +159,7 @@ export async function completeSetup(formData: FormData): Promise<AuthResult> {
     .select()
     .single();
   if (wfErr || !workflow) {
-    console.error("completeSetup: workflow insert failed", wfErr);
+    console.error("provision: workflow insert failed", wfErr);
     return { error: "Couldn't create your onboarding." };
   }
 
@@ -145,10 +178,7 @@ export async function completeSetup(formData: FormData): Promise<AuthResult> {
     })),
   );
   if (stepsErr) {
-    console.error("completeSetup: workflow_steps insert failed", stepsErr);
+    console.error("provision: workflow_steps insert failed", stepsErr);
     return { error: "Couldn't set up your steps." };
   }
-
-  revalidatePath("/app", "layout");
-  redirect("/app/workflow");
 }
