@@ -5,6 +5,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createServiceClient } from "./supabase/server";
+import type {
+  OnboardingStep as OnboardingStepRow,
+  Signature,
+} from "./supabase/types";
+import { sendClientCompletion, sendHandoff, sendVerification } from "./emails";
 import {
   getPortal,
   getStepFiles,
@@ -77,6 +82,63 @@ async function touch(portal: PortalData) {
       business_id: portal.business.id,
       type: "onboarding_completed",
     });
+    await sendCompletionMail(portal);
+  }
+}
+
+/**
+ * The two emails that fire when an onboarding finishes.
+ *
+ * Guarded by the `completed_at` check in touch(), so this runs once
+ * per onboarding rather than on every later write. Failures are
+ * logged inside sendMail and deliberately not surfaced: the client
+ * has finished either way, and losing that because a mail provider
+ * had a bad minute would be the worse bug.
+ */
+async function sendCompletionMail(portal: PortalData) {
+  const svc = createServiceClient();
+
+  const [stepsRes, filesRes] = await Promise.all([
+    svc
+      .from("onboarding_steps")
+      .select("*")
+      .eq("onboarding_id", portal.onboarding.id)
+      .order("position"),
+    svc
+      .from("files")
+      .select("id, onboarding_step_id")
+      .in("onboarding_step_id", portal.steps.map((s) => s.id)),
+  ]);
+
+  const steps = (stepsRes.data ?? []) as OnboardingStepRow[];
+  const agreementStep = steps.find((s) => s.type === "agreement");
+
+  let signature: Signature | null = null;
+  if (agreementStep) {
+    const { data } = await svc
+      .from("signatures")
+      .select("*")
+      .eq("onboarding_step_id", agreementStep.id)
+      .maybeSingle();
+    signature = (data as Signature | null) ?? null;
+  }
+
+  const finished = {
+    ...portal.onboarding,
+    completed_at: portal.onboarding.completed_at ?? new Date().toISOString(),
+  };
+
+  await sendClientCompletion(portal.business, portal.client, finished);
+
+  if (portal.business.reply_to_email) {
+    await sendHandoff(
+      portal.business,
+      portal.client,
+      finished,
+      steps,
+      (filesRes.data ?? []).length,
+      signature,
+    );
   }
 }
 
@@ -389,11 +451,12 @@ export async function sendVerificationCode(
     })
     .eq("id", portal.onboarding.id);
 
-  if (process.env.NODE_ENV !== "production") {
-    console.info(
-      `[portal] verification code for ${portal.client.email}: ${code} — Goal 11 sends this by email`,
-    );
-  }
+  await sendVerification(
+    portal.business,
+    portal.client,
+    code,
+    VERIFICATION_TTL_MIN,
+  );
 }
 
 export async function verifyCode(

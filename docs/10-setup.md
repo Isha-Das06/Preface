@@ -96,6 +96,26 @@ Two symptoms worth recognising:
 
 The rule: **any `.select()` chained onto an `.insert()` needs a SELECT policy that matches the new row at that instant.** During bootstrap, that is a different instant from the one you were thinking about.
 
+### 5. Never run `next build` in the same folder as a running `next dev`
+
+`next build` writes production output into `.next`, which `next dev` is also using. Afterwards the dev server serves the app shell but **404s every nested route** — `/o/<token>` works while `/o/<token>/info` does not — with nothing in the log.
+
+```bash
+rm -rf .next
+```
+
+Then start the dev server again. Worth knowing before you spend twenty minutes convinced you broke routing.
+
+### 6. Mail goes to Mailpit over HTTP, not SMTP
+
+Supabase's local stack publishes Mailpit's **web UI** on `54324` and does not publish its SMTP port at all, so nothing can send mail by connecting to `localhost:1025`. Mailpit's HTTP send API is the way in:
+
+```
+POST http://127.0.0.1:54324/api/v1/send
+```
+
+`src/lib/email.ts` uses it whenever `RESEND_API_KEY` is unset, which is what keeps local development from ever emailing a real person — and these messages are addressed to a customer's customers, so that matters more than usual. Read what was sent at http://localhost:54324.
+
 ---
 
 ## Verifying RLS actually bites

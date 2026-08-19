@@ -3,6 +3,13 @@
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "./supabase/server";
+import { sendInvitation, sendReminderEmail } from "./emails";
+import type {
+  Business,
+  Client,
+  Onboarding,
+  OnboardingStep,
+} from "./supabase/types";
 
 /**
  * Write side of the business app.
@@ -146,17 +153,28 @@ export async function createClientAction(
   return {
     ok: true,
     company,
+    onboardingId: (onboarding as { id: string }).id,
     token: (onboarding as { token: string }).token,
     stepCount: steps.length,
   };
 }
 
-/** Marks the link as sent. Actual email delivery arrives in Goal 9. */
+/**
+ * Sends the client their link.
+ *
+ * Everything is read back through the caller's session first, so RLS
+ * is what proves this onboarding belongs to them — there is no
+ * business_id filter here on purpose, same rule as the rest of this
+ * file.
+ */
 export async function sendOnboarding(
   onboardingId: string,
 ): Promise<ActionResult> {
   const supabase = await createClient();
   const now = new Date().toISOString();
+
+  const context = await loadMailContext(supabase, onboardingId);
+  if (!context) return { error: "That onboarding no longer exists." };
 
   const { error } = await supabase
     .from("onboardings")
@@ -164,12 +182,73 @@ export async function sendOnboarding(
     .eq("id", onboardingId);
   if (error) return { error: "Couldn't mark that as sent." };
 
-  await supabase
-    .from("events")
-    .insert({ onboarding_id: onboardingId, type: "link_sent" });
+  // business_id is required, not decorative: the RLS check on events
+  // is `business_id = auth_business_id()`, so a row without it fails
+  // the policy and is silently dropped. Every link_sent and
+  // reminder_sent event was lost this way until it was noticed.
+  await supabase.from("events").insert({
+    onboarding_id: onboardingId,
+    business_id: context.business.id,
+    type: "link_sent",
+  });
+
+  const sent = await sendInvitation(
+    context.business,
+    context.client,
+    context.onboarding,
+    context.steps,
+  );
 
   revalidatePath("/app", "layout");
+
+  // The link IS sent — it is a URL, and it is now marked as such. Say
+  // so plainly rather than pretending the email went out.
+  if ("error" in sent) {
+    return { error: "Marked as sent, but the email didn't go out." };
+  }
   return { ok: true };
+}
+
+interface MailContext {
+  business: Business;
+  client: Client;
+  onboarding: Onboarding;
+  steps: OnboardingStep[];
+}
+
+async function loadMailContext(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  onboardingId: string,
+): Promise<MailContext | null> {
+  const { data: onboarding } = await supabase
+    .from("onboardings")
+    .select("*")
+    .eq("id", onboardingId)
+    .maybeSingle();
+  if (!onboarding) return null;
+
+  const o = onboarding as Onboarding;
+
+  const [bizRes, clientRes, stepsRes] = await Promise.all([
+    supabase.from("businesses").select("*").eq("id", o.business_id).maybeSingle(),
+    supabase.from("clients").select("*").eq("id", o.client_id).maybeSingle(),
+    supabase
+      .from("onboarding_steps")
+      .select("*")
+      .eq("onboarding_id", o.id)
+      .order("position"),
+  ]);
+
+  const business = bizRes.data as Business | null;
+  const client = clientRes.data as Client | null;
+  if (!business || !client) return null;
+
+  return {
+    business,
+    client,
+    onboarding: o,
+    steps: (stepsRes.data ?? []) as OnboardingStep[],
+  };
 }
 
 export async function sendReminder(
@@ -177,12 +256,8 @@ export async function sendReminder(
 ): Promise<ActionResult> {
   const supabase = await createClient();
 
-  const { data: onboarding } = await supabase
-    .from("onboardings")
-    .select("reminder_count")
-    .eq("id", onboardingId)
-    .maybeSingle();
-  if (!onboarding) return { error: "That onboarding no longer exists." };
+  const context = await loadMailContext(supabase, onboardingId);
+  if (!context) return { error: "That onboarding no longer exists." };
 
   await supabase.from("reminders").insert({
     onboarding_id: onboardingId,
@@ -198,11 +273,25 @@ export async function sendReminder(
     })
     .eq("id", onboardingId);
 
-  await supabase
-    .from("events")
-    .insert({ onboarding_id: onboardingId, type: "reminder_sent", meta: { kind: "manual" } });
+  await supabase.from("events").insert({
+    onboarding_id: onboardingId,
+    business_id: context.business.id,
+    type: "reminder_sent",
+    meta: { kind: "manual" },
+  });
+
+  const sent = await sendReminderEmail(
+    context.business,
+    context.client,
+    context.onboarding,
+    context.steps,
+  );
 
   revalidatePath("/app", "layout");
+
+  if ("error" in sent) {
+    return { error: "Logged the reminder, but the email didn't go out." };
+  }
   return { ok: true };
 }
 

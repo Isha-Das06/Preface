@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Copy, Plus, Send } from "lucide-react";
+import { Copy, Mail, Plus } from "lucide-react";
 import {
   Button,
   Dialog,
@@ -12,7 +12,7 @@ import {
   Modal,
   toast,
 } from "@/components/ui";
-import { createClientAction } from "@/lib/actions";
+import { createClientAction, sendOnboarding } from "@/lib/actions";
 
 /**
  * B4 — New client. A modal, not a page: three fields don't justify
@@ -28,9 +28,12 @@ export function NewClientButton({ full = false }: { full?: boolean }) {
   const [pending, startTransition] = useTransition();
   const [created, setCreated] = useState<{
     company: string;
+    onboardingId: string;
     token: string;
     stepCount: number;
   } | null>(null);
+  const [sending, startSend] = useTransition();
+  const [emailed, setEmailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [company, setCompany] = useState("");
   const [contact, setContact] = useState("");
@@ -46,6 +49,7 @@ export function NewClientButton({ full = false }: { full?: boolean }) {
     if (!next) {
       setTimeout(() => {
         setCreated(null);
+    setEmailed(false);
         setError(null);
         setCompany("");
         setContact("");
@@ -69,6 +73,7 @@ export function NewClientButton({ full = false }: { full?: boolean }) {
       }
       setCreated({
         company: result.company as string,
+        onboardingId: result.onboardingId as string,
         token: result.token as string,
         stepCount: result.stepCount as number,
       });
@@ -111,6 +116,39 @@ export function NewClientButton({ full = false }: { full?: boolean }) {
               </Button>
             </div>
 
+            {/* docs/05-copy.md: offer to send it, but never insist —
+                plenty of agencies would rather paste the link into a
+                thread they already have going with the client. */}
+            {created.stepCount > 0 && (
+              <div className="flex items-center gap-3">
+                <Button
+                  size="sm"
+                  variant="primary"
+                  loading={sending}
+                  disabled={emailed}
+                  onClick={() => {
+                    startSend(async () => {
+                      const result = await sendOnboarding(created.onboardingId);
+                      if (result.error) {
+                        toast.error("Couldn't email it", {
+                          description: result.error,
+                        });
+                        return;
+                      }
+                      setEmailed(true);
+                      toast.success("Sent");
+                    });
+                  }}
+                >
+                  <Mail className="size-3.5" />
+                  {emailed ? "Emailed" : "Email it to them"}
+                </Button>
+                <span className="text-sm text-ink-500">
+                  or send it yourself, however you normally would.
+                </span>
+              </div>
+            )}
+
             {created.stepCount === 0 ? (
               // Honest rather than cheerful: a link with no steps is
               // a dead end, and the fix is one screen away.
@@ -121,9 +159,8 @@ export function NewClientButton({ full = false }: { full?: boolean }) {
               </p>
             ) : (
               <p className="text-sm text-ink-500">
-                They'll see {created.stepCount} step
-                {created.stepCount === 1 ? "" : "s"}. Send it however you
-                normally would — email, WhatsApp, Slack.
+                They&apos;ll see {created.stepCount} step
+                {created.stepCount === 1 ? "" : "s"}.
               </p>
             )}
           </div>

@@ -88,18 +88,24 @@ export async function getClients(): Promise<ClientRow[]> {
       supabase.from("onboardings").select("*"),
       supabase
         .from("onboarding_steps")
-        .select("id,onboarding_id,position,title,completed_at,required"),
+        .select("id,onboarding_id,position,title,type,completed_at,required"),
       supabase.from("reminders").select("onboarding_id"),
     ]);
 
   const clients = (clientsRes.data ?? []) as Client[];
   const onboardings = (onboardingsRes.data ?? []) as Onboarding[];
-  const steps = (stepsRes.data ?? []) as {
+  // `instructions` steps are excluded, because the portal never shows
+  // them as a step — they render as the welcome note on the hub. If
+  // the business counts them and the client does not, the two sides
+  // disagree about progress: "5 of 8" here against "5 of 7" in the
+  // client's own view and in the reminder email they just received.
+  const steps = ((stepsRes.data ?? []) as {
     onboarding_id: string;
     position: number;
     title: string;
+    type: string;
     completed_at: string | null;
-  }[];
+  }[]).filter((s) => s.type !== "instructions");
   const reminders = (remindersRes.data ?? []) as { onboarding_id: string }[];
 
   const stepsByOnboarding = new Map<string, typeof steps>();
