@@ -29,6 +29,7 @@ export default async function WorkflowPage() {
     configured: s.configured,
     required: s.required,
     requiresPrevious: s.requires_previous,
+    config: s.config,
     setupHint: SETUP_HINTS[s.type] ?? "Add the details for this step",
   }));
 

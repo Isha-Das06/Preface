@@ -56,6 +56,11 @@ import {
 import { cn } from "@/lib/utils";
 import { addStep, reorderSteps, toggleStep, updateStep } from "@/lib/actions";
 import { STEP_TYPE_LABELS } from "@/lib/templates";
+import {
+  StepConfigEditor,
+  readConfig,
+  writeConfig,
+} from "./step-config";
 import type { StepType } from "@/lib/supabase/types";
 
 export interface BuilderStep {
@@ -68,6 +73,9 @@ export interface BuilderStep {
   required: boolean;
   requiresPrevious?: boolean;
   setupHint?: string;
+  /** What the step is actually made of. The editor needs it to show
+      what is already there instead of a blank form. */
+  config?: Record<string, unknown>;
 }
 
 const ICONS: Record<StepType, typeof FileText> = {
@@ -321,35 +329,23 @@ function StepEditor({
   const [description, setDescription] = useState(step.summary);
   const [required, setRequired] = useState(step.required);
   const [locked, setLocked] = useState(Boolean(step.requiresPrevious));
-  const [amount, setAmount] = useState("");
-  const [bookingUrl, setBookingUrl] = useState("");
-  const [agreement, setAgreement] = useState("");
+  // Seeded from what is stored, so opening a configured step shows
+  // the agreement you wrote rather than an empty box.
+  const [config, setConfig] = useState(() => readConfig(step.type, step.config));
   const [pending, startTransition] = useTransition();
 
   function save() {
     startTransition(async () => {
-      // Only send config when this step type has some, so saving a
-      // title never silently marks an empty step as configured.
-      let config: Record<string, unknown> | undefined;
-      if (step.type === "payment" && amount.trim()) {
-        const cents = Math.round(Number(amount.replace(/[^0-9.]/g, "")) * 100);
-        if (Number.isFinite(cents) && cents > 0) {
-          config = { amountCents: cents, currency: "usd", description: title };
-        }
-      }
-      if (step.type === "scheduling" && bookingUrl.trim()) {
-        config = { url: bookingUrl.trim() };
-      }
-      if (step.type === "agreement" && agreement.trim()) {
-        config = { body: agreement.trim() };
-      }
+      // Null when there is nothing real yet, so saving a title never
+      // marks an empty step as ready and shows it to clients.
+      const nextConfig = writeConfig(step.type, config, title.trim() || step.title);
 
       const result = await updateStep(step.id, {
         title: title.trim() || step.title,
         description,
         required,
         requiresPrevious: locked,
-        ...(config ? { config } : {}),
+        ...(nextConfig ? { config: nextConfig } : {}),
       });
 
       if (result.error) {
@@ -360,7 +356,8 @@ function StepEditor({
         title: title.trim() || step.title,
         required,
         requiresPrevious: locked,
-        ...(config ? { configured: true } : {}),
+        config: nextConfig ?? step.config,
+        ...(nextConfig ? { configured: true } : {}),
       });
       toast.success("Step saved");
     });
@@ -396,42 +393,11 @@ function StepEditor({
           />
         </Field>
 
-        {step.type === "payment" && (
-          <Field label="Amount" help="Collected into your own Stripe account.">
-            <Input
-              leading="$"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="2,500.00"
-              inputMode="decimal"
-            />
-          </Field>
-        )}
-        {step.type === "scheduling" && (
-          <Field
-            label="Booking link"
-            help="Your existing Cal.com or Calendly link."
-          >
-            <Input
-              value={bookingUrl}
-              onChange={(e) => setBookingUrl(e.target.value)}
-              placeholder="cal.com/you/kickoff"
-            />
-          </Field>
-        )}
-        {step.type === "agreement" && (
-          <Field
-            label="Agreement text"
-            help="Paste your own agreement. We never supply legal wording."
-          >
-            <Textarea
-              rows={6}
-              value={agreement}
-              onChange={(e) => setAgreement(e.target.value)}
-              placeholder="Paste your agreement here…"
-            />
-          </Field>
-        )}
+        <StepConfigEditor
+          type={step.type}
+          state={config}
+          setState={setConfig}
+        />
 
         <Checkbox
           checked={required}
