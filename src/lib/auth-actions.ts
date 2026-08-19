@@ -59,6 +59,66 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
   redirect(next.startsWith("/") ? next : "/app");
 }
 
+/**
+ * Send a password reset link.
+ *
+ * Always reports the same thing, whether or not the address has an
+ * account. The login form is deliberately vague for the same reason —
+ * a precise answer here turns this into an account-enumeration
+ * oracle, and it is a nicer oracle than the login form because it
+ * needs no password guess at all.
+ *
+ * Locally the mail lands in Mailpit at http://localhost:54324 rather
+ * than a real inbox.
+ */
+export async function requestPasswordReset(
+  formData: FormData,
+): Promise<AuthResult> {
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) return { error: "Enter your email." };
+
+  const supabase = await createClient();
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${base}/auth/confirm?next=/reset`,
+  });
+
+  // Logged, not shown: a transport failure is ours to fix, and
+  // telling the sender which addresses error is the same leak.
+  if (error) console.error("requestPasswordReset:", error.message);
+
+  redirect("/forgot?sent=1");
+}
+
+/**
+ * Set a new password.
+ *
+ * Requires the session the recovery link established, so this cannot
+ * be used to change a password without proving control of the inbox.
+ */
+export async function updatePassword(
+  formData: FormData,
+): Promise<AuthResult> {
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirm") ?? "");
+
+  if (password.length < 8)
+    return { error: "Passwords need to be at least 8 characters." };
+  if (password !== confirm) return { error: "Those two don't match." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "That reset link has expired. Request a new one." };
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: error.message };
+
+  redirect("/app");
+}
+
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();

@@ -39,6 +39,24 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
+
+  // An emailed auth link carries ?code= and lands wherever Supabase's
+  // configured site_url points, which is not necessarily the route
+  // that knows how to exchange it. Rather than depend on that config
+  // being right, funnel any code to the handler that can use it — a
+  // reset link that drops someone on the home page, logged out and
+  // with no explanation, is indistinguishable from a broken product.
+  const code = request.nextUrl.searchParams.get("code");
+  if (code && path !== "/auth/confirm") {
+    const confirm = request.nextUrl.clone();
+    confirm.pathname = "/auth/confirm";
+    confirm.searchParams.set(
+      "next",
+      request.nextUrl.searchParams.get("next") ?? "/reset",
+    );
+    return NextResponse.redirect(confirm);
+  }
+
   const isProtected = path.startsWith("/app") || path === "/welcome";
 
   if (isProtected && !user) {

@@ -22,6 +22,8 @@ App on `http://localhost:3000`. Database dashboard on `http://localhost:54323`. 
 founder@acmeagency.co  /  testpassword123
 ```
 
+Forgot a password? `/forgot` sends a reset link. Locally it lands in **Mailpit at http://localhost:54324**, never a real inbox — open it there and click through.
+
 Linked to the seeded Acme Agency with 5 clients and 5 onboardings.
 
 ## Common commands

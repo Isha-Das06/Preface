@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { Button, Field, Input } from "@/components/ui";
 import type { AuthResult } from "@/lib/auth-actions";
 
@@ -47,6 +48,18 @@ export function AuthForm({
         label="Password"
         required
         help={mode === "signup" ? "At least 8 characters." : undefined}
+        // Beside the field it belongs to, where someone who has just
+        // mistyped their password is already looking.
+        hint={
+          mode === "login" ? (
+            <Link
+              href="/forgot"
+              className="text-sm text-ink-500 underline underline-offset-2 hover:text-ink-900"
+            >
+              Forgot?
+            </Link>
+          ) : undefined
+        }
       >
         <Input
           name="password"
