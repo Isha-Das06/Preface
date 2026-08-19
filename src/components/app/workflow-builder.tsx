@@ -265,8 +265,11 @@ export function WorkflowBuilder({ initial }: { initial: BuilderStep[] }) {
           {enabled.length > live.length && (
             <>
               {" "}
-              <span data-numeric>{enabled.length - live.length}</span> still need
-              setup and stay hidden until then.
+              <span data-numeric>{enabled.length - live.length}</span>{" "}
+              {enabled.length - live.length === 1
+                ? "still needs setup and stays"
+                : "still need setup and stay"}{" "}
+              hidden until then.
             </>
           )}
         </p>
