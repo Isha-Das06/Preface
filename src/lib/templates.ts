@@ -260,3 +260,101 @@ export const TEMPLATES: Template[] = [
 export function getTemplate(id: string): Template {
   return TEMPLATES.find((t) => t.id === id) ?? TEMPLATES[TEMPLATES.length - 1];
 }
+
+/**
+ * A freshly added step of each type.
+ *
+ * Blank where the content has to be the customer's own — an
+ * agreement, a payment amount, a booking link — and pre-filled where
+ * a sensible default exists, so adding "Company information" gives
+ * you working fields rather than an empty shell to assemble.
+ *
+ * `configured: false` means the step is hidden from clients until it
+ * is set up, which is what keeps a half-built workflow sendable.
+ */
+export const BLANK_STEPS: Record<StepType, TemplateStep> = {
+  instructions: {
+    type: "instructions",
+    title: "Welcome",
+    description: "A short note before they start.",
+    required: false,
+    configured: false,
+    config: { body: "" },
+  },
+  info: {
+    type: "info",
+    title: "Company information",
+    description: "So we know who to contact and how to reach you.",
+    required: true,
+    configured: true,
+    config: {
+      fields: [
+        { name: "company", label: "Company name", type: "text", required: true },
+        { name: "contact", label: "Your name", type: "text", required: true },
+        { name: "email", label: "Email", type: "email", required: true },
+        { name: "phone", label: "Phone", type: "tel", required: false },
+      ],
+    },
+  },
+  questionnaire: {
+    type: "questionnaire",
+    title: "Questions",
+    description: "A few questions about the work ahead.",
+    required: true,
+    configured: false,
+    config: { questions: [] },
+  },
+  files: {
+    type: "files",
+    title: "Files",
+    description: "Upload what you have.",
+    required: true,
+    configured: false,
+    config: { requests: [] },
+  },
+  checklist: {
+    type: "checklist",
+    title: "Account access",
+    description: "Add us to the accounts we'll be working in.",
+    required: true,
+    configured: false,
+    config: { items: [] },
+  },
+  agreement: {
+    type: "agreement",
+    title: "Service agreement",
+    description: "Please read through, then sign at the bottom.",
+    required: true,
+    configured: false,
+    config: { body: "" },
+  },
+  payment: {
+    type: "payment",
+    title: "Deposit",
+    description: "Paid securely to us via Stripe.",
+    required: true,
+    configured: false,
+    requiresPrevious: true,
+    config: { amountCents: null, currency: "usd", description: "Deposit" },
+  },
+  scheduling: {
+    type: "scheduling",
+    title: "Kickoff call",
+    description: "Pick a time that works for you.",
+    required: false,
+    configured: false,
+    config: { url: "", duration: "45 minutes", format: "Video call" },
+  },
+};
+
+/** Human labels for the "add a step" menu. */
+export const STEP_TYPE_LABELS: Record<StepType, string> = {
+  instructions: "Note",
+  info: "Company information",
+  questionnaire: "Questionnaire",
+  files: "File upload",
+  checklist: "Account access",
+  agreement: "Agreement",
+  payment: "Payment",
+  scheduling: "Scheduling",
+};

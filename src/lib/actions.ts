@@ -4,12 +4,13 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "./supabase/server";
 import { sendInvitation, sendReminderEmail } from "./emails";
-import { getTemplate } from "./templates";
+import { BLANK_STEPS, getTemplate } from "./templates";
 import type {
   Business,
   Client,
   Onboarding,
   OnboardingStep,
+  StepType,
 } from "./supabase/types";
 
 /**
@@ -462,4 +463,61 @@ export async function applyTemplate(templateId: string): Promise<ActionResult> {
 
   revalidatePath("/app", "layout");
   return { ok: true, stepCount: template.steps.length };
+}
+
+/**
+ * Append a step to the workflow.
+ *
+ * One step per type, deliberately. The client portal routes by type —
+ * /o/<token>/questions is the questionnaire — so a second step of the
+ * same type would have no URL of its own and the client would never
+ * reach it. Rather than build a step nobody can open, the menu only
+ * offers types the workflow does not already have.
+ */
+export async function addStep(type: StepType): Promise<ActionResult> {
+  const blank = BLANK_STEPS[type];
+  if (!blank) return { error: "That isn't a kind of step." };
+
+  const supabase = await createClient();
+
+  const { data: workflow } = await supabase
+    .from("workflows")
+    .select("id")
+    .maybeSingle();
+  if (!workflow) return { error: "Finish setting up your business first." };
+
+  const workflowId = (workflow as { id: string }).id;
+
+  const { data: existing } = await supabase
+    .from("workflow_steps")
+    .select("type, position")
+    .eq("workflow_id", workflowId);
+
+  const rows = (existing ?? []) as { type: StepType; position: number }[];
+  if (rows.some((r) => r.type === type)) {
+    return { error: "Your onboarding already has one of those." };
+  }
+
+  const nextPosition = rows.reduce((max, r) => Math.max(max, r.position), -1) + 1;
+
+  const { error } = await supabase.from("workflow_steps").insert({
+    workflow_id: workflowId,
+    position: nextPosition,
+    type: blank.type,
+    title: blank.title,
+    description: blank.description ?? null,
+    required: blank.required,
+    enabled: true,
+    configured: blank.configured,
+    requires_previous: blank.requiresPrevious ?? false,
+    config: blank.config ?? {},
+  });
+
+  if (error) {
+    console.error("addStep: insert failed", error);
+    return { error: "Couldn't add that step." };
+  }
+
+  revalidatePath("/app", "layout");
+  return { ok: true, title: blank.title };
 }

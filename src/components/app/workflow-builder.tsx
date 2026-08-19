@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   KeyboardSensor,
@@ -40,16 +41,21 @@ import {
   Checkbox,
   Dialog,
   DialogClose,
-  DialogTrigger,
   Field,
   Input,
-  PendingButton,
+  Menu,
+  MenuContent,
+  MenuItem,
+  MenuLabel,
+  MenuTrigger,
   SlideOver,
   Textarea,
+  Tooltip,
   toast,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import { reorderSteps, toggleStep, updateStep } from "@/lib/actions";
+import { addStep, reorderSteps, toggleStep, updateStep } from "@/lib/actions";
+import { STEP_TYPE_LABELS } from "@/lib/templates";
 import type { StepType } from "@/lib/supabase/types";
 
 export interface BuilderStep {
@@ -233,10 +239,7 @@ export function WorkflowBuilder({ initial }: { initial: BuilderStep[] }) {
             </>
           )}
         </p>
-        <PendingButton size="sm" reason="Adding steps arrives with the saved workflow">
-          <Plus className="size-4" />
-          Add step
-        </PendingButton>
+        <AddStepMenu existing={steps.map((s) => s.type)} />
       </div>
 
       {/* B6 — step editor. A slide-over, not a dialog: editing feels
@@ -418,5 +421,75 @@ function StepEditor({
         />
       </div>
     </SlideOver>
+  );
+}
+
+
+/**
+ * Only offers step types the workflow does not already have.
+ *
+ * The portal routes by type, so a second questionnaire would have no
+ * URL of its own and the client could never open it. Hiding those
+ * options is kinder than adding a step that silently does nothing.
+ */
+function AddStepMenu({ existing }: { existing: StepType[] }) {
+  const [pending, start] = useTransition();
+  const router = useRouter();
+
+  const available = (Object.keys(STEP_TYPE_LABELS) as StepType[]).filter(
+    (t) => !existing.includes(t),
+  );
+
+  if (available.length === 0) {
+    return (
+      <Tooltip content="Your onboarding already has one of every kind of step.">
+        <span>
+          <Button size="sm" disabled>
+            <Plus className="size-4" />
+            Add step
+          </Button>
+        </span>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Menu>
+      <MenuTrigger asChild>
+        <Button size="sm" loading={pending}>
+          <Plus className="size-4" />
+          Add step
+        </Button>
+      </MenuTrigger>
+      <MenuContent>
+        <MenuLabel>Add a step</MenuLabel>
+        {available.map((type) => {
+          const Icon = ICONS[type];
+          return (
+            <MenuItem
+              key={type}
+              onSelect={() =>
+                start(async () => {
+                  const result = await addStep(type);
+                  if (result.error) {
+                    toast.error("Couldn't add that step", {
+                      description: result.error,
+                    });
+                    return;
+                  }
+                  toast.success(`${result.title} added`, {
+                    description: "Open it to fill in the details.",
+                  });
+                  router.refresh();
+                })
+              }
+            >
+              <Icon className="size-4 text-ink-400" />
+              {STEP_TYPE_LABELS[type]}
+            </MenuItem>
+          );
+        })}
+      </MenuContent>
+    </Menu>
   );
 }
