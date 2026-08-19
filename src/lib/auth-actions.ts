@@ -117,6 +117,16 @@ async function provision(
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // The screen already redirects anyone who has a business, but a
+  // second tab or a stale form can still get here. Landing them in
+  // the app is the truthful outcome — they ARE set up — where
+  // "Couldn't create your business" reads like a failure.
+  const { data: already } = await supabase
+    .from("businesses")
+    .select("id")
+    .maybeSingle();
+  if (already) redirect("/app");
+
   const template = getTemplate(templateId);
 
   // The id is generated here instead of being read back with
