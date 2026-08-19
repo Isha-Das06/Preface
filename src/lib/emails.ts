@@ -347,3 +347,58 @@ export async function sendHandoff(
     ...render(blocks),
   });
 }
+
+export interface DigestRow {
+  company: string;
+  waitingOn: string | null;
+  days: number;
+}
+
+/**
+ * Weekly digest to the business.
+ *
+ * One job: tell them who to chase, and reassure them the product
+ * already chased. It closes with what finished, because a list of
+ * outstanding work with no wins reads like a telling-off.
+ */
+export async function sendDigest(
+  business: Business,
+  waiting: DigestRow[],
+  finishedLastWeek: number,
+) {
+  if (!business.reply_to_email) return { error: "No reply-to address." };
+
+  const blocks: Block[] = waiting.map((w) => ({
+    row: {
+      label: w.company,
+      value: [w.waitingOn, `${w.days} day${w.days === 1 ? "" : "s"}`]
+        .filter(Boolean)
+        .join(" — "),
+    },
+  }));
+
+  blocks.push({
+    p: "Reminders have gone out automatically.",
+  });
+  blocks.push({
+    button: { label: "Open dashboard", href: appUrl("/app") },
+  });
+
+  if (finishedLastWeek > 0) {
+    blocks.push({
+      p: `${finishedLastWeek} client${finishedLastWeek === 1 ? "" : "s"} finished last week.`,
+    });
+  }
+
+  return sendMail({
+    to: business.reply_to_email,
+    toName: senderName(business),
+    fromName: "Preface",
+    replyTo: null,
+    subject:
+      waiting.length === 1
+        ? "You're waiting on 1 client"
+        : `You're waiting on ${waiting.length} clients`,
+    ...render(blocks),
+  });
+}

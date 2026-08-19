@@ -118,6 +118,27 @@ POST http://127.0.0.1:54324/api/v1/send
 
 ---
 
+## Scheduled jobs
+
+Two endpoints do the work that runs on a clock. Neither schedules itself — something external has to call them.
+
+| Endpoint | How often | What it does |
+|---|---|---|
+| `POST /api/cron/reminders` | hourly | Sends the 2 / 5 / 12-day nudges, at most three per onboarding |
+| `POST /api/cron/digest` | weekly | Sends each business its "you're waiting on N clients" summary |
+
+Both require a bearer token matching `CRON_SECRET`, and **refuse to run at all if that variable is unset** rather than running unguarded. They execute as `service_role` across every tenant, so an open URL here would let anyone mail every client of every business.
+
+```bash
+curl -X POST http://localhost:3000/api/cron/reminders -H "Authorization: Bearer $CRON_SECRET"
+```
+
+Both return a readable report of what they did and, more usefully, what they skipped and why — `"paused after a manual nudge"`, `"active in the last day"`, `"already chased three times"`. Run them by hand before trusting a scheduler.
+
+**Firing them in production** is a Vercel Cron entry, a GitHub Action, or anything that can make an HTTP request on a timer. The reminder job decides what is due from `reminder_count`, not from when it last ran, so a missed hour catches up on the next one and a scheduler that double-fires cannot double-send.
+
+---
+
 ## Verifying RLS actually bites
 
 Worth re-running after any policy change. Tenant isolation is the one thing that must never silently break.
