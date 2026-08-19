@@ -1,12 +1,11 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import { Upload } from "lucide-react";
+import { LogoUpload } from "@/components/app/logo-upload";
 import {
   Button,
   Field,
   Input,
-  PendingButton,
   RadioCard,
   RadioGroup,
 } from "@/components/ui";
@@ -47,6 +46,7 @@ const KINDS = [
 
 export default function Welcome() {
   const [kind, setKind] = useState("marketing");
+  const [name, setName] = useState("");
   const [skipping, startSkip] = useTransition();
   const [state, formAction, pending] = useActionState(
     async (_prev: { error: string } | undefined, formData: FormData) =>
@@ -79,6 +79,8 @@ export default function Welcome() {
             <Input
               name="businessName"
               placeholder="Acme Agency"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               autoFocus
               required
             />
@@ -109,15 +111,11 @@ export default function Welcome() {
 
           <Field
             label="Add your logo"
-            help="Optional — we'll use your initials until you do."
+            help="Optional — we&apos;ll use your initials until you do."
           >
-            <PendingButton
-              className="w-fit"
-              reason="Available once file storage is connected"
-            >
-              <Upload className="size-4" />
-              Upload logo
-            </PendingButton>
+            {/* No business row exists yet, so the uploaded URL rides
+                along in a hidden field and completeSetup saves it. */}
+            <LogoUpload fieldName="logoUrl" businessName={name || "Your business"} />
           </Field>
         </div>
 

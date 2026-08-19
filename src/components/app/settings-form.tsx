@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { ExternalLink, Upload } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import {
   Button,
   Card,
@@ -15,6 +15,7 @@ import {
   ProgressBar,
   Textarea,
 } from "@/components/ui";
+import { LogoUpload } from "./logo-upload";
 import { updateSettings } from "@/lib/actions";
 import type { Business } from "@/lib/supabase/types";
 
@@ -56,14 +57,14 @@ export function SettingsForm({
             <Input name="businessName" defaultValue={business.name} />
           </Field>
 
-          <Field label="Logo" help="PNG or SVG. Falls back to a monogram.">
-            <PendingButton
-              className="w-fit"
-              reason="Available once file storage is connected"
-            >
-              <Upload className="size-4" />
-              Upload logo
-            </PendingButton>
+          <Field label="Logo" help="PNG, JPG, WebP or SVG, up to 2 MB. Falls back to a monogram.">
+            {/* Saves on its own rather than with the form: it is an
+                upload, not a text field, and pretending otherwise
+                means a logo that vanishes if you navigate away. */}
+            <LogoUpload
+              initialUrl={business.logo_url}
+              businessName={business.name}
+            />
           </Field>
 
           <Field
@@ -179,7 +180,7 @@ export function SettingsForm({
               <ProgressBar value={activeCount} total={limit} />
             )}
             <p className="text-xs text-ink-500">
-              Completed onboardings don't count and stay available forever.
+              Completed onboardings don&apos;t count and stay available forever.
             </p>
           </div>
         </CardBody>

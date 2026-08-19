@@ -73,10 +73,11 @@ export async function signOut() {
 export async function completeSetup(formData: FormData): Promise<AuthResult> {
   const name = String(formData.get("businessName") ?? "").trim();
   const templateId = String(formData.get("template") ?? "scratch");
+  const logoUrl = String(formData.get("logoUrl") ?? "").trim() || null;
 
   if (!name) return { error: "Your business needs a name." };
 
-  const failed = await provision(name, templateId);
+  const failed = await provision(name, templateId, logoUrl);
   if (failed) return failed;
 
   revalidatePath("/app", "layout");
@@ -108,6 +109,7 @@ export async function skipSetup(): Promise<AuthResult> {
 async function provision(
   name: string,
   templateId: string,
+  logoUrl: string | null = null,
 ): Promise<AuthResult> {
   const supabase = await createClient();
   const {
@@ -130,6 +132,7 @@ async function provision(
   const { error: bizErr } = await supabase.from("businesses").insert({
     id: businessId,
     name,
+    logo_url: logoUrl,
     slug: `${slugify(name)}-${Math.random().toString(36).slice(2, 7)}`,
     reply_to_email: user.email,
     sender_name: name,
