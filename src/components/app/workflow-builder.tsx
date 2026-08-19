@@ -151,8 +151,39 @@ function StepRow({
   );
 }
 
+/**
+ * A fingerprint of what the server last sent.
+ *
+ * Compared instead of the array itself, which is a fresh object on
+ * every render and would clobber optimistic state constantly.
+ */
+function signature(steps: BuilderStep[]) {
+  return steps
+    .map(
+      (s) =>
+        `${s.id}:${s.enabled}:${s.configured}:${s.required}:${s.requiresPrevious ?? false}:${s.title}:${s.summary}`,
+    )
+    .join("|");
+}
+
 export function WorkflowBuilder({ initial }: { initial: BuilderStep[] }) {
   const [steps, setSteps] = useState(initial);
+
+  // Local state is the source of truth WHILE dragging or toggling, so
+  // that reorders feel instant. But it was seeded from props once and
+  // never looked at them again, so anything the server added later —
+  // a new step, a whole template — wrote to the database and never
+  // appeared. You could add three steps in a row and watch the list
+  // sit there.
+  //
+  // Adjusting state during render is React's documented answer to
+  // "props changed"; an effect would paint the stale list first.
+  const [seen, setSeen] = useState(() => signature(initial));
+  const current = signature(initial);
+  if (seen !== current) {
+    setSeen(current);
+    setSteps(initial);
+  }
   const [editing, setEditing] = useState<BuilderStep | null>(null);
   const [, startTransition] = useTransition();
 
