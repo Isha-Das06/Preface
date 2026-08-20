@@ -488,23 +488,47 @@ export async function updateSettings(
 ): Promise<ActionResult> {
   const supabase = await createClient();
 
+  const name = String(formData.get("businessName") ?? "").trim();
   const accent = String(formData.get("accentColor") ?? "").trim();
+  const replyTo = String(formData.get("replyTo") ?? "").trim();
+
+  // The name sits at the top of every client's onboarding page and
+  // drives the monogram when there is no logo. Saving an empty one
+  // left clients looking at a blank header, and the form said
+  // "Saved" while it happened.
+  if (!name) return { error: "Your business needs a name." };
+
   // A customer picking an unreadable colour must not be able to
-  // break their own client's portal.
-  const validAccent = /^#[0-9a-fA-F]{6}$/.test(accent);
+  // break their own client's portal. Rejecting it out loud beats
+  // dropping it silently and reporting success.
+  if (accent && !/^#[0-9a-fA-F]{6}$/.test(accent)) {
+    return { error: "Use a colour like #1F6F4A." };
+  }
+
+  // Clients reply to this address. A typo here is a conversation
+  // that never reaches anyone.
+  if (replyTo && !/.+@.+\..+/.test(replyTo)) {
+    return { error: "That reply-to address doesn't look right." };
+  }
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id")
+    .maybeSingle();
+  if (!business) return { error: "No business to update." };
 
   const { error } = await supabase
     .from("businesses")
     .update({
-      name: String(formData.get("businessName") ?? "").trim(),
+      name,
       welcome_message: String(formData.get("welcomeMessage") ?? "").trim(),
       sender_name: String(formData.get("senderName") ?? "").trim(),
-      reply_to_email: String(formData.get("replyTo") ?? "").trim(),
-      ...(validAccent ? { accent_color: accent } : {}),
+      reply_to_email: replyTo,
+      ...(accent ? { accent_color: accent } : {}),
       reminders_enabled: formData.get("remindersEnabled") === "on",
       digest_enabled: formData.get("digestEnabled") === "on",
     })
-    .neq("id", "00000000-0000-0000-0000-000000000000");
+    .eq("id", (business as { id: string }).id);
 
   if (error) return { error: "Couldn't save your settings." };
 
