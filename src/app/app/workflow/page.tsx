@@ -31,6 +31,15 @@ export default async function WorkflowPage({
 
   const steps = await getWorkflowSteps(selected?.id);
 
+  // Built once and used by both the header button and the empty
+  // state. The empty state used to link without it, which sent
+  // "Choose a template" at whichever workflow happened to be oldest
+  // — so applying one from an empty second onboarding replaced the
+  // steps of the first.
+  const templatesHref = selected
+    ? `/app/workflow/templates?w=${selected.id}`
+    : "/app/workflow/templates";
+
   const builderSteps: BuilderStep[] = steps.map((s) => ({
     id: s.id,
     type: s.type,
@@ -44,25 +53,6 @@ export default async function WorkflowPage({
     config: s.config,
     setupHint: SETUP_HINTS[s.type] ?? "Add the details for this step",
   }));
-
-  if (steps.length === 0) {
-    return (
-      <AppPage title="Your onboarding">
-        <Card>
-          <EmptyState
-            icon={WorkflowIcon}
-            title="No onboarding yet"
-            description="Pick a starting point and we'll fill it in with questions that suit your work."
-            action={
-              <Button asChild variant="primary" size="sm">
-                <Link href="/app/workflow/templates">Choose a template</Link>
-              </Button>
-            }
-          />
-        </Card>
-      </AppPage>
-    );
-  }
 
   return (
     <AppPage
@@ -81,11 +71,7 @@ export default async function WorkflowPage({
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="sm">
             <Link
-              href={
-                selected
-                  ? `/app/workflow/templates?w=${selected.id}`
-                  : "/app/workflow/templates"
-              }
+              href={templatesHref}
             >
               <LayoutTemplate className="size-4" />
               Templates
@@ -98,7 +84,22 @@ export default async function WorkflowPage({
         </div>
       }
     >
-      <WorkflowBuilder initial={builderSteps} workflowId={selected?.id} />
+      {steps.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={WorkflowIcon}
+            title="Nothing in this one yet"
+            description="Start from a template, or add steps one at a time."
+            action={
+              <Button asChild variant="primary" size="sm">
+                <Link href={templatesHref}>Choose a template</Link>
+              </Button>
+            }
+          />
+        </Card>
+      ) : (
+        <WorkflowBuilder initial={builderSteps} workflowId={selected?.id} />
+      )}
     </AppPage>
   );
 }
