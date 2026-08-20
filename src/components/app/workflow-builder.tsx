@@ -234,6 +234,16 @@ export function WorkflowBuilder({
     <div className="flex flex-col gap-4">
       <Card className="overflow-hidden">
         <DndContext
+          /**
+           * A fixed id, or dnd-kit invents one from an internal
+           * counter that starts at 0 on the server and has already
+           * advanced on the client. The aria-describedby it hands
+           * each drag handle then differs between the two, React
+           * reports a hydration mismatch, and — as it says — does
+           * not patch it up, leaving the handles pointing at a
+           * description that is not there for screen readers.
+           */
+          id="workflow-steps"
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={onDragEnd}
