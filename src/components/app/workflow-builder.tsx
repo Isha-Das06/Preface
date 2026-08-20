@@ -67,7 +67,10 @@ export interface BuilderStep {
   id: string;
   type: StepType;
   title: string;
+  /** Derived one-liner for the row: "6 fields". Display only. */
   summary: string;
+  /** What the business actually wrote. What the editor must load. */
+  description: string;
   enabled: boolean;
   configured: boolean;
   required: boolean;
@@ -326,7 +329,10 @@ function StepEditor({
   onSaved: (patch: Partial<BuilderStep>) => void;
 }) {
   const [title, setTitle] = useState(step.title);
-  const [description, setDescription] = useState(step.summary);
+  // step.summary is a derived label like "6 fields". Seeding the
+  // editor from it meant opening a step and saving replaced the real
+  // instructions with that label — silent data loss on every save.
+  const [description, setDescription] = useState(step.description);
   const [required, setRequired] = useState(step.required);
   const [locked, setLocked] = useState(Boolean(step.requiresPrevious));
   // Seeded from what is stored, so opening a configured step shows
@@ -354,6 +360,7 @@ function StepEditor({
       }
       onSaved({
         title: title.trim() || step.title,
+        description,
         required,
         requiresPrevious: locked,
         config: nextConfig ?? step.config,

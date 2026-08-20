@@ -25,6 +25,7 @@ export default async function WorkflowPage() {
     type: s.type,
     title: s.title,
     summary: summarise(s.type, s.config, s.description),
+    description: s.description ?? "",
     enabled: s.enabled,
     configured: s.configured,
     required: s.required,

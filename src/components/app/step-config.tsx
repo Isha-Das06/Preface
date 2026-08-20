@@ -1,6 +1,6 @@
 "use client";
 
-import { GripVertical, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Button, Checkbox, Field, Input, Select, Textarea } from "@/components/ui";
 import type { StepType } from "@/lib/supabase/types";
 
@@ -160,8 +160,9 @@ function Row({
   onRemove: () => void;
 }) {
   return (
+    // No drag handle: these rows cannot be reordered yet, and a grip
+    // that does nothing when you pull it is worse than no grip.
     <li className="flex items-start gap-2 rounded-(--radius-card) border border-ink-200 bg-surface p-3">
-      <GripVertical className="mt-2 size-4 shrink-0 text-ink-300" aria-hidden />
       <div className="flex min-w-0 flex-1 flex-col gap-2">{children}</div>
       <button
         type="button"
@@ -288,6 +289,7 @@ export function StepConfigEditor({
                 }
               />
               <Select
+                className="w-40"
                 value={q.type}
                 onValueChange={(v) =>
                   set(
@@ -491,36 +493,38 @@ export function StepConfigEditor({
                 )
               }
             >
-              <Input
-                value={f.label}
-                placeholder="Billing address"
-                onChange={(e) =>
-                  set(
-                    "fields",
-                    state.fields.map((x, n) =>
-                      n === i ? { ...x, label: e.target.value } : x,
-                    ),
-                  )
-                }
-              />
-              <Select
-                value={f.type}
-                onValueChange={(v) =>
-                  set(
-                    "fields",
-                    state.fields.map((x, n) =>
-                      n === i ? { ...x, type: v } : x,
-                    ),
-                  )
-                }
-                options={[
-                  { value: "text", label: "Text" },
-                  { value: "email", label: "Email" },
-                  { value: "tel", label: "Phone" },
-                  { value: "url", label: "Website" },
-                  { value: "textarea", label: "Long text" },
-                ]}
-              />
+              <div className="grid grid-cols-[1fr_9rem] gap-2">
+                <Input
+                  value={f.label}
+                  placeholder="Billing address"
+                  onChange={(e) =>
+                    set(
+                      "fields",
+                      state.fields.map((x, n) =>
+                        n === i ? { ...x, label: e.target.value } : x,
+                      ),
+                    )
+                  }
+                />
+                <Select
+                  value={f.type}
+                  onValueChange={(v) =>
+                    set(
+                      "fields",
+                      state.fields.map((x, n) =>
+                        n === i ? { ...x, type: v } : x,
+                      ),
+                    )
+                  }
+                  options={[
+                    { value: "text", label: "Text" },
+                    { value: "email", label: "Email" },
+                    { value: "tel", label: "Phone" },
+                    { value: "url", label: "Website" },
+                    { value: "textarea", label: "Long text" },
+                  ]}
+                />
+              </div>
               <Checkbox
                 checked={f.required}
                 onCheckedChange={(v) =>
