@@ -4,6 +4,7 @@ import { Card, CardBody } from "@/components/ui";
 import { MobileHeader } from "@/components/app/nav";
 import { TemplatePicker } from "@/components/app/template-picker";
 import { TEMPLATES } from "@/lib/templates";
+import { getWorkflows } from "@/lib/queries";
 
 /**
  * B7 — Template picker.
@@ -17,7 +18,15 @@ export default async function TemplatesPage({
   searchParams,
 }: PageProps<"/app/workflow/templates">) {
   const { w } = await searchParams;
-  const workflowId = typeof w === "string" ? w : undefined;
+  const workflows = await getWorkflows();
+
+  // Which onboarding this replaces has to be on the screen. With one
+  // it is obvious; with two, "your current steps" names neither, and
+  // the button underneath deletes whichever it meant.
+  const selected =
+    workflows.find((x) => x.id === w) ?? workflows[0] ?? null;
+  const workflowId = selected?.id;
+  const many = workflows.length > 1;
 
   return (
     <>
@@ -28,7 +37,7 @@ export default async function TemplatesPage({
           className="-mx-2 flex w-fit min-h-9 items-center gap-1.5 rounded-md px-2 text-sm text-ink-500 transition-colors hover:text-ink-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus)"
         >
           <ArrowLeft className="size-4" />
-          Your onboarding
+          {selected?.name ?? "Your onboarding"}
         </Link>
 
         <div className="flex flex-col gap-2">
@@ -39,6 +48,13 @@ export default async function TemplatesPage({
             Each one arrives with real questions already written. Change
             anything you like afterwards.
           </p>
+          {many && selected && (
+            <p className="text-sm text-ink-700">
+              This replaces the steps in{" "}
+              <span className="font-medium text-ink-900">{selected.name}</span>.
+              Your other onboardings are untouched.
+            </p>
+          )}
         </div>
 
         <TemplatePicker
@@ -54,8 +70,18 @@ export default async function TemplatesPage({
         <Card className="bg-warn-100/50">
           <CardBody>
             <p className="text-sm text-warn-fg">
-              Applying a template replaces your current steps. Anything already
-              sent to a client keeps the steps it was sent with.
+              Applying a template replaces the{" "}
+              {selected ? (
+                <>
+                  <span className="font-medium">{selected.stepCount}</span> step
+                  {selected.stepCount === 1 ? "" : "s"} in{" "}
+                  <span className="font-medium">{selected.name}</span>
+                </>
+              ) : (
+                "current steps"
+              )}
+              . Anything already sent to a client keeps the steps it was sent
+              with.
             </p>
           </CardBody>
         </Card>
