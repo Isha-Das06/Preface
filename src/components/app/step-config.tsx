@@ -28,6 +28,8 @@ export interface FileRequest {
   label: string;
   hint: string;
   required: boolean;
+  /** Let the client send a batch against this one item. */
+  multiple?: boolean;
 }
 export interface ChecklistItem {
   key: string;
@@ -354,18 +356,33 @@ export function StepConfigEditor({
                   )
                 }
               />
-              <Checkbox
-                checked={r.required}
-                onCheckedChange={(v) =>
-                  set(
-                    "requests",
-                    state.requests.map((x, n) =>
-                      n === i ? { ...x, required: Boolean(v) } : x,
-                    ),
-                  )
-                }
-                label="Required"
-              />
+              <div className="flex flex-wrap gap-x-5 gap-y-2">
+                <Checkbox
+                  checked={r.required}
+                  onCheckedChange={(v) =>
+                    set(
+                      "requests",
+                      state.requests.map((x, n) =>
+                        n === i ? { ...x, required: Boolean(v) } : x,
+                      ),
+                    )
+                  }
+                  label="Required"
+                />
+                <Checkbox
+                  checked={Boolean(r.multiple)}
+                  onCheckedChange={(v) =>
+                    set(
+                      "requests",
+                      state.requests.map((x, n) =>
+                        n === i ? { ...x, multiple: Boolean(v) } : x,
+                      ),
+                    )
+                  }
+                  label="Allow several"
+                  description="For things like photography, where one file is never the answer."
+                />
+              </div>
             </Row>
           ))}
         </ul>
@@ -374,7 +391,7 @@ export function StepConfigEditor({
           onClick={() =>
             set("requests", [
               ...state.requests,
-              { key: "", label: "", hint: "", required: false },
+              { key: "", label: "", hint: "", required: false, multiple: false },
             ])
           }
         />

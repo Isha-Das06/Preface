@@ -550,7 +550,18 @@ interface FileRequestConfig {
   label: string;
   hint: string;
   required: boolean;
+  /** Set by the business when one file is never the answer. */
+  multiple?: boolean;
 }
+
+/**
+ * Cap on a single "allow several" request.
+ *
+ * Not a product opinion so much as a floor under the storage bill:
+ * without it one client with a full camera roll can upload without
+ * limit, and the business finds out from an invoice.
+ */
+const MAX_FILES_PER_REQUEST = 25;
 
 /**
  * Everything this onboarding is allowed to write to, derived from the
@@ -633,9 +644,8 @@ export async function confirmUpload(
   const { portal, step } = found;
 
   const requests = (step.config.requests ?? []) as FileRequestConfig[];
-  if (!requests.some((r) => r.key === requestKey)) {
-    return { error: "Unknown item." };
-  }
+  const request = requests.find((r) => r.key === requestKey);
+  if (!request) return { error: "Unknown item." };
 
   // The path came back over the wire, so re-derive what it is allowed
   // to look like instead of trusting it.
@@ -656,12 +666,23 @@ export async function confirmUpload(
   const size = Number(object.metadata?.size ?? 0);
   const mime = String(object.metadata?.mimetype ?? "") || null;
 
-  // Re-uploading against the same request replaces rather than
-  // accumulates: the business asked for a logo, not a version history.
   const existing = (await getStepFiles(step.id)).filter(
     (f) => f.request_key === requestKey,
   );
-  if (existing.length) {
+
+  if (request.multiple) {
+    // A batch request accumulates. "Send us your product photography"
+    // is not answered by one photograph, and silently overwriting the
+    // last one is worse than refusing — the client watches the count
+    // stay at 1 and cannot tell why.
+    if (existing.length >= MAX_FILES_PER_REQUEST) {
+      return {
+        error: `That's the limit of ${MAX_FILES_PER_REQUEST} files here. Remove one first.`,
+      };
+    }
+  } else if (existing.length) {
+    // A single request replaces: they asked for a logo, not a version
+    // history.
     await svc.storage.from(BUCKET).remove(existing.map((f) => f.storage_path));
     await svc
       .from("files")

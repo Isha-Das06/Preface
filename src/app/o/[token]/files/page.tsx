@@ -8,6 +8,7 @@ interface ConfigRequest {
   label: string;
   hint: string;
   required: boolean;
+  multiple?: boolean;
 }
 
 function humanSize(bytes: number) {
@@ -39,19 +40,18 @@ export default async function FilesStep({
         title={step.title}
         description={step.description ?? undefined}
         saved={Boolean(step.completedAt)}
-        requests={requests.map((r) => {
-          const file = uploaded.find((f) => f.request_key === r.key);
-          return {
-            ...r,
-            uploaded: file
-              ? {
-                  id: file.id,
-                  name: file.filename,
-                  size: humanSize(file.size_bytes),
-                }
-              : null,
-          };
-        })}
+        requests={requests.map((r) => ({
+          ...r,
+          // Always a list, even for single requests — one shape for
+          // the client to render beats two nearly-identical ones.
+          uploaded: uploaded
+            .filter((f) => f.request_key === r.key)
+            .map((f) => ({
+              id: f.id,
+              name: f.filename,
+              size: humanSize(f.size_bytes),
+            })),
+        }))}
       />
     </PortalShell>
   );
