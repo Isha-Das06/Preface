@@ -13,13 +13,18 @@ import { TEMPLATES } from "@/lib/templates";
  * which is worse than not offering one. New ones get written
  * alongside the first real customer who asks.
  */
-export default function TemplatesPage() {
+export default async function TemplatesPage({
+  searchParams,
+}: PageProps<"/app/workflow/templates">) {
+  const { w } = await searchParams;
+  const workflowId = typeof w === "string" ? w : undefined;
+
   return (
     <>
       <MobileHeader title="Preface" />
       <div className="mx-auto flex w-full max-w-[720px] flex-1 flex-col gap-6 px-4 py-6 md:px-6 md:py-8">
         <Link
-          href="/app/workflow"
+          href={workflowId ? `/app/workflow?w=${workflowId}` : "/app/workflow"}
           className="-mx-2 flex w-fit min-h-9 items-center gap-1.5 rounded-md px-2 text-sm text-ink-500 transition-colors hover:text-ink-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus)"
         >
           <ArrowLeft className="size-4" />
@@ -37,6 +42,7 @@ export default function TemplatesPage() {
         </div>
 
         <TemplatePicker
+          workflowId={workflowId}
           templates={TEMPLATES.map((t) => ({
             id: t.id,
             name: t.name,

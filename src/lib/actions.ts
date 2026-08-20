@@ -45,10 +45,115 @@ function generateToken(length = 32): string {
   return out.length === length ? out : generateToken(length);
 }
 
+/** The oldest workflow — what a business with only one always means. */
 async function currentWorkflow() {
   const supabase = await createClient();
-  const { data } = await supabase.from("workflows").select("id").maybeSingle();
+  const { data } = await supabase
+    .from("workflows")
+    .select("id")
+    .order("created_at")
+    .limit(1)
+    .maybeSingle();
   return (data as { id: string } | null)?.id ?? null;
+}
+
+/**
+ * Confirm a workflow id belongs to the caller, and fall back to
+ * their oldest when none is given.
+ *
+ * RLS already scopes the lookup, so an id from another tenant comes
+ * back empty rather than being trusted.
+ */
+async function resolveWorkflow(workflowId?: string) {
+  if (!workflowId) return currentWorkflow();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("workflows")
+    .select("id")
+    .eq("id", workflowId)
+    .maybeSingle();
+  return (data as { id: string } | null)?.id ?? null;
+}
+
+export async function createWorkflow(name: string): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id")
+    .maybeSingle();
+  if (!business) return { error: "Finish setting up your business first." };
+
+  const { data, error } = await supabase
+    .from("workflows")
+    .insert({
+      business_id: (business as { id: string }).id,
+      name: name.trim() || "New onboarding",
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    console.error("createWorkflow:", error);
+    return { error: "Couldn't create that onboarding." };
+  }
+
+  revalidatePath("/app", "layout");
+  return { ok: true, workflowId: (data as { id: string }).id };
+}
+
+export async function renameWorkflow(
+  workflowId: string,
+  name: string,
+): Promise<ActionResult> {
+  const trimmed = name.trim();
+  if (!trimmed) return { error: "Give it a name." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("workflows")
+    .update({ name: trimmed })
+    .eq("id", workflowId);
+  if (error) return { error: "Couldn't rename that." };
+
+  revalidatePath("/app", "layout");
+  return { ok: true };
+}
+
+/**
+ * Delete a workflow, unless something depends on it.
+ *
+ * Refused once any client has been sent it: onboardings reference the
+ * workflow they came from, and losing that link would break the
+ * record of what each client was actually asked for. Their steps are
+ * snapshots and survive regardless, but the history should not go
+ * quiet just because a template was tidied up.
+ */
+export async function deleteWorkflow(workflowId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const { data: all } = await supabase.from("workflows").select("id");
+  if ((all ?? []).length <= 1) {
+    return { error: "This is your only onboarding, so it can't be deleted." };
+  }
+
+  const { data: used } = await supabase
+    .from("onboardings")
+    .select("id")
+    .eq("workflow_id", workflowId)
+    .limit(1);
+  if ((used ?? []).length) {
+    return { error: "Clients have already been sent this one, so it stays." };
+  }
+
+  const { error } = await supabase
+    .from("workflows")
+    .delete()
+    .eq("id", workflowId);
+  if (error) return { error: "Couldn't delete that." };
+
+  revalidatePath("/app", "layout");
+  return { ok: true };
 }
 
 /* ------------------------------------------------------------------
@@ -73,7 +178,9 @@ export async function createClientAction(
     .maybeSingle();
   if (!business) return { error: "Finish setting up your business first." };
 
-  const workflowId = await currentWorkflow();
+  const workflowId = await resolveWorkflow(
+    String(formData.get("workflowId") ?? "") || undefined,
+  );
   if (!workflowId) return { error: "Build your onboarding before adding a client." };
 
   const businessId = (business as { id: string }).id;
@@ -416,21 +523,20 @@ export async function updateSettings(
  * point of snapshotting: changing your template must never rewrite a
  * questionnaire a client is halfway through.
  */
-export async function applyTemplate(templateId: string): Promise<ActionResult> {
+export async function applyTemplate(
+  templateId: string,
+  targetWorkflowId?: string,
+): Promise<ActionResult> {
   const supabase = await createClient();
 
-  const { data: workflow } = await supabase
-    .from("workflows")
-    .select("id")
-    .maybeSingle();
-
-  // RLS scopes this to the caller's business, so no workflow means
-  // they have no business yet rather than "someone else's workflow".
-  if (!workflow) {
+  // Only ever the workflow being edited. Replacing every one of them
+  // because a template was applied to a single onboarding would be a
+  // very expensive misunderstanding.
+  const workflowId = await resolveWorkflow(targetWorkflowId);
+  if (!workflowId) {
     return { error: "Finish setting up your business first." };
   }
 
-  const workflowId = (workflow as { id: string }).id;
   const template = getTemplate(templateId);
 
   const { error: delErr } = await supabase
@@ -474,19 +580,17 @@ export async function applyTemplate(templateId: string): Promise<ActionResult> {
  * reach it. Rather than build a step nobody can open, the menu only
  * offers types the workflow does not already have.
  */
-export async function addStep(type: StepType): Promise<ActionResult> {
+export async function addStep(
+  type: StepType,
+  targetWorkflowId?: string,
+): Promise<ActionResult> {
   const blank = BLANK_STEPS[type];
   if (!blank) return { error: "That isn't a kind of step." };
 
   const supabase = await createClient();
 
-  const { data: workflow } = await supabase
-    .from("workflows")
-    .select("id")
-    .maybeSingle();
-  if (!workflow) return { error: "Finish setting up your business first." };
-
-  const workflowId = (workflow as { id: string }).id;
+  const workflowId = await resolveWorkflow(targetWorkflowId);
+  if (!workflowId) return { error: "Finish setting up your business first." };
 
   const { data: existing } = await supabase
     .from("workflow_steps")

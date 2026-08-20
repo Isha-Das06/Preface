@@ -5,12 +5,15 @@ import { cn } from "@/lib/utils";
 /** Consistent page chrome for every business-app screen. */
 export function AppPage({
   title,
+  titleSlot,
   description,
   actions,
   children,
   className,
 }: {
   title: string;
+  /** Replaces the heading when the page owns something richer. */
+  titleSlot?: React.ReactNode;
   description?: string;
   actions?: React.ReactNode;
   children: React.ReactNode;
@@ -25,7 +28,12 @@ export function AppPage({
           className,
         )}
       >
-        <PageHeader title={title} description={description} actions={actions} />
+        <PageHeader
+          title={title}
+          titleSlot={titleSlot}
+          description={description}
+          actions={actions}
+        />
         {children}
       </div>
     </>

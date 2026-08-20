@@ -177,7 +177,13 @@ function signature(steps: BuilderStep[]) {
     .join("|");
 }
 
-export function WorkflowBuilder({ initial }: { initial: BuilderStep[] }) {
+export function WorkflowBuilder({
+  initial,
+  workflowId,
+}: {
+  initial: BuilderStep[];
+  workflowId?: string;
+}) {
   const [steps, setSteps] = useState(initial);
 
   // Local state is the source of truth WHILE dragging or toggling, so
@@ -284,7 +290,7 @@ export function WorkflowBuilder({ initial }: { initial: BuilderStep[] }) {
             </>
           )}
         </p>
-        <AddStepMenu existing={steps.map((s) => s.type)} />
+        <AddStepMenu existing={steps.map((s) => s.type)} workflowId={workflowId} />
       </div>
 
       {/* B6 — step editor. A slide-over, not a dialog: editing feels
@@ -439,7 +445,13 @@ function StepEditor({
  * URL of its own and the client could never open it. Hiding those
  * options is kinder than adding a step that silently does nothing.
  */
-function AddStepMenu({ existing }: { existing: StepType[] }) {
+function AddStepMenu({
+  existing,
+  workflowId,
+}: {
+  existing: StepType[];
+  workflowId?: string;
+}) {
   const [pending, start] = useTransition();
   const router = useRouter();
 
@@ -477,7 +489,7 @@ function AddStepMenu({ existing }: { existing: StepType[] }) {
               key={type}
               onSelect={() =>
                 start(async () => {
-                  const result = await addStep(type);
+                  const result = await addStep(type, workflowId);
                   if (result.error) {
                     toast.error("Couldn't add that step", {
                       description: result.error,

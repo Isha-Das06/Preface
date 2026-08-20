@@ -2,11 +2,14 @@ import { cn } from "@/lib/utils";
 
 export function PageHeader({
   title,
+  titleSlot,
   description,
   actions,
   className,
 }: {
   title: string;
+  /** Rendered in place of the heading, for pages that own it. */
+  titleSlot?: React.ReactNode;
   description?: string;
   actions?: React.ReactNode;
   className?: string;
@@ -19,7 +22,9 @@ export function PageHeader({
       )}
     >
       <div className="flex min-w-0 flex-col gap-1">
-        <h1 className="text-2xl font-semibold text-ink-900">{title}</h1>
+        {titleSlot ?? (
+          <h1 className="text-2xl font-semibold text-ink-900">{title}</h1>
+        )}
         {description && (
           <p className="measure text-sm text-ink-500">{description}</p>
         )}

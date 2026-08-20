@@ -13,7 +13,7 @@ import { AppPage } from "@/components/app/page-shell";
 import { NewClientButton } from "@/components/app/new-client";
 import { RemindButton } from "@/components/app/remind-button";
 import { FirstRun } from "@/components/app/first-run";
-import { getClients, getWaitingOn } from "@/lib/queries";
+import { getClients, getWaitingOn, getWorkflows } from "@/lib/queries";
 
 /**
  * B1 — Waiting on. The app root.
@@ -39,6 +39,7 @@ export default async function WaitingOnPage({
   const forceEmpty = empty === "1";
 
   const [all, waiting] = await Promise.all([getClients(), getWaitingOn()]);
+  const workflows = await getWorkflows();
 
   const rows = forceEmpty ? [] : waiting;
   const finished = forceEmpty
@@ -67,7 +68,7 @@ export default async function WaitingOnPage({
           ? `${rows.length} ${rows.length === 1 ? "client hasn't" : "clients haven't"} finished onboarding.`
           : undefined
       }
-      actions={<NewClientButton />}
+      actions={<NewClientButton workflows={workflows} />}
     >
       {rows.length === 0 ? (
         <Card>
@@ -75,7 +76,7 @@ export default async function WaitingOnPage({
             icon={CheckCircle2}
             title="Nothing to chase"
             description="Every client is up to date. You'll see anyone who stalls here."
-            action={<NewClientButton />}
+            action={<NewClientButton workflows={workflows} />}
           />
         </Card>
       ) : (

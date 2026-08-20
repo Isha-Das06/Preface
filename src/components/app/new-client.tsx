@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Copy, Mail, Plus } from "lucide-react";
 import {
+  Select,
   Button,
   Dialog,
   DialogClose,
@@ -23,7 +24,16 @@ import { createClientAction, sendOnboarding } from "@/lib/actions";
  * link is the deliverable, so it gets its own moment rather than a
  * toast that disappears.
  */
-export function NewClientButton({ full = false }: { full?: boolean }) {
+export function NewClientButton({
+  full = false,
+  workflows = [],
+  defaultWorkflowId,
+}: {
+  full?: boolean;
+  /** Only offered as a choice when there is more than one. */
+  workflows?: { id: string; name: string; stepCount: number }[];
+  defaultWorkflowId?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [created, setCreated] = useState<{
@@ -38,6 +48,9 @@ export function NewClientButton({ full = false }: { full?: boolean }) {
   const [company, setCompany] = useState("");
   const [contact, setContact] = useState("");
   const [email, setEmail] = useState("");
+  const [workflowId, setWorkflowId] = useState(
+    defaultWorkflowId ?? workflows[0]?.id ?? "",
+  );
 
   const ready = company.trim() && /.+@.+\..+/.test(email);
   const link = created
@@ -65,6 +78,7 @@ export function NewClientButton({ full = false }: { full?: boolean }) {
       fd.set("company", company);
       fd.set("contact", contact);
       fd.set("email", email);
+      if (workflowId) fd.set("workflowId", workflowId);
 
       const result = await createClientAction(fd);
       if (result.error) {
@@ -201,6 +215,25 @@ export function NewClientButton({ full = false }: { full?: boolean }) {
                 placeholder="Sarah Chen"
               />
             </Field>
+            {/* Only asked when there is a genuine choice. One
+                onboarding means no question worth putting on the
+                screen. */}
+            {workflows.length > 1 && (
+              <Field
+                label="Which onboarding?"
+                help="They get a copy of this one, frozen as it is today."
+              >
+                <Select
+                  value={workflowId}
+                  onValueChange={setWorkflowId}
+                  options={workflows.map((w) => ({
+                    value: w.id,
+                    label: `${w.name} · ${w.stepCount} step${w.stepCount === 1 ? "" : "s"}`,
+                  }))}
+                />
+              </Field>
+            )}
+
             <Field
               label="Email"
               required

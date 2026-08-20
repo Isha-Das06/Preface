@@ -7,7 +7,9 @@ import { applyTemplate } from "@/lib/actions";
 
 export function TemplatePicker({
   templates,
+  workflowId,
 }: {
+  workflowId?: string;
   templates: {
     id: string;
     name: string;
@@ -38,7 +40,7 @@ export function TemplatePicker({
         loading={pending}
         onClick={() =>
           start(async () => {
-            const result = await applyTemplate(choice);
+            const result = await applyTemplate(choice, workflowId);
 
             // Only claim it worked once it has. This button used to
             // toast "Template applied" and navigate without writing
@@ -53,7 +55,7 @@ export function TemplatePicker({
             toast.success("Template applied", {
               description: `${result.stepCount} steps are ready to edit.`,
             });
-            router.push("/app/workflow");
+            router.push(workflowId ? `/app/workflow?w=${workflowId}` : "/app/workflow");
             router.refresh();
           })
         }

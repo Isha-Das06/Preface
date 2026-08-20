@@ -227,19 +227,74 @@ export interface EventItem {
   created_at: string;
 }
 
-export async function getWorkflowSteps(): Promise<WorkflowStep[]> {
+export interface WorkflowSummary {
+  id: string;
+  name: string;
+  stepCount: number;
+  /** Clients already sent this one. Blocks deleting it. */
+  sentCount: number;
+}
+
+/**
+ * Every workflow this business has, oldest first.
+ *
+ * Plural because agencies genuinely do different kinds of work, and
+ * a design project asks for nothing like a consulting retainer. The
+ * schema always allowed this — workflows carries a business_id with
+ * no uniqueness — it was the app that assumed exactly one.
+ */
+export async function getWorkflows(): Promise<WorkflowSummary[]> {
   if (!isSupabaseConfigured()) return [];
   const supabase = await createClient();
-  const { data: workflow } = await supabase
-    .from("workflows")
-    .select("id")
-    .maybeSingle();
-  if (!workflow) return [];
 
+  const [wfRes, stepRes, onbRes] = await Promise.all([
+    supabase.from("workflows").select("id, name").order("created_at"),
+    supabase.from("workflow_steps").select("workflow_id"),
+    supabase.from("onboardings").select("workflow_id"),
+  ]);
+
+  const steps = (stepRes.data ?? []) as { workflow_id: string }[];
+  const onboardings = (onbRes.data ?? []) as { workflow_id: string }[];
+
+  const count = (rows: { workflow_id: string }[], id: string) =>
+    rows.filter((r) => r.workflow_id === id).length;
+
+  return ((wfRes.data ?? []) as { id: string; name: string }[]).map((w) => ({
+    id: w.id,
+    name: w.name,
+    stepCount: count(steps, w.id),
+    sentCount: count(onboardings, w.id),
+  }));
+}
+
+/**
+ * Steps for one workflow. Without an id it falls back to the oldest,
+ * which is the one a business with a single workflow always means.
+ */
+export async function getWorkflowSteps(
+  workflowId?: string,
+): Promise<WorkflowStep[]> {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = await createClient();
+
+  let id = workflowId;
+  if (!id) {
+    const { data } = await supabase
+      .from("workflows")
+      .select("id")
+      .order("created_at")
+      .limit(1)
+      .maybeSingle();
+    id = (data as { id: string } | null)?.id;
+  }
+  if (!id) return [];
+
+  // RLS scopes this to the caller's business, so an id belonging to
+  // another tenant simply returns nothing.
   const { data } = await supabase
     .from("workflow_steps")
     .select("*")
-    .eq("workflow_id", (workflow as { id: string }).id)
+    .eq("workflow_id", id)
     .order("position");
 
   return (data ?? []) as WorkflowStep[];

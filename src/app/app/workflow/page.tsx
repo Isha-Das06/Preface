@@ -5,7 +5,8 @@ import { Workflow as WorkflowIcon } from "lucide-react";
 import { AppPage } from "@/components/app/page-shell";
 import { WorkflowBuilder } from "@/components/app/workflow-builder";
 import { NewClientButton } from "@/components/app/new-client";
-import { getWorkflowSteps } from "@/lib/queries";
+import { getWorkflows, getWorkflowSteps } from "@/lib/queries";
+import { WorkflowSwitcher } from "@/components/app/workflow-switcher";
 import type { BuilderStep } from "@/components/app/workflow-builder";
 
 /**
@@ -17,8 +18,18 @@ import type { BuilderStep } from "@/components/app/workflow-builder";
  * tooltip to explain, it has become the workflow-automation platform
  * we exist not to be.
  */
-export default async function WorkflowPage() {
-  const steps = await getWorkflowSteps();
+export default async function WorkflowPage({
+  searchParams,
+}: PageProps<"/app/workflow">) {
+  const { w } = await searchParams;
+  const workflows = await getWorkflows();
+
+  // An unknown or missing id falls back to the oldest rather than
+  // erroring — a stale bookmark should land somewhere sensible.
+  const selected =
+    workflows.find((x) => x.id === w) ?? workflows[0] ?? null;
+
+  const steps = await getWorkflowSteps(selected?.id);
 
   const builderSteps: BuilderStep[] = steps.map((s) => ({
     id: s.id,
@@ -55,21 +66,39 @@ export default async function WorkflowPage() {
 
   return (
     <AppPage
-      title="Your onboarding"
-      description="This is what every new client works through. Turn steps off if you don't need them."
+      title={selected?.name ?? "Your onboarding"}
+      titleSlot={
+        selected ? (
+          <WorkflowSwitcher workflows={workflows} selected={selected} />
+        ) : undefined
+      }
+      description={
+        workflows.length > 1
+          ? "Clients get whichever of these you pick when you add them."
+          : "This is what every new client works through. Turn steps off if you don't need them."
+      }
       actions={
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="sm">
-            <Link href="/app/workflow/templates">
+            <Link
+              href={
+                selected
+                  ? `/app/workflow/templates?w=${selected.id}`
+                  : "/app/workflow/templates"
+              }
+            >
               <LayoutTemplate className="size-4" />
               Templates
             </Link>
           </Button>
-          <NewClientButton />
+          <NewClientButton
+            workflows={workflows}
+            defaultWorkflowId={selected?.id}
+          />
         </div>
       }
     >
-      <WorkflowBuilder initial={builderSteps} />
+      <WorkflowBuilder initial={builderSteps} workflowId={selected?.id} />
     </AppPage>
   );
 }
