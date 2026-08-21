@@ -9,6 +9,7 @@ import { InfoForm } from "@/components/portal/info-form";
 import { PaymentPanel } from "@/components/portal/payment-panel";
 import { QuestionsForm } from "@/components/portal/questions-form";
 import { ScheduleConfirm } from "@/components/portal/schedule-confirm";
+import { safeExternalUrl } from "@/lib/utils";
 import type { StepType } from "@/lib/supabase/types";
 
 /**
@@ -189,12 +190,15 @@ function Body({
       return (
         <StepFrame {...frame}>
           <PaymentPanel
+            token={SAMPLE_TOKEN}
             amount={new Intl.NumberFormat("en-US", {
               style: "currency",
               currency: currency.toUpperCase(),
             }).format(cents / 100)}
             description={str(config.description, title)}
             businessName={business.name}
+            payUrl={safeExternalUrl(str(config.payUrl))}
+            paid={false}
           />
         </StepFrame>
       );
@@ -209,7 +213,7 @@ function Body({
         >
           <ScheduleConfirm
             token={SAMPLE_TOKEN}
-            url={str(config.url)}
+            url={safeExternalUrl(str(config.url)) ?? ""}
             booked={false}
           />
         </StepFrame>

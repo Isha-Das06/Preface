@@ -32,7 +32,7 @@ const ROWS: [string, boolean[]][] = [
   ["Everything in onboarding", [true, true, true]],
   ["Your logo and colours", [true, true, true]],
   ["Automatic reminders", [true, true, true]],
-  ["Payments via your Stripe", [true, true, true]],
+  ["Deposits via your payment link", [true, true, true]],
   ["Contract signing", [true, true, true]],
   ["Remove our name from emails", [false, true, true]],
   ["Multiple workflows", [false, true, true]],
@@ -182,8 +182,8 @@ export default function Pricing() {
             What you don't pay for
           </h2>
           <p className="text-base text-ink-600">
-            No transaction fees. Client payments go straight into your Stripe
-            account — we never touch the money and we don't take a cut.
+            No transaction fees. Your client pays on your own payment link, so
+            the money never passes through us and we don&apos;t take a cut.
           </p>
         </div>
       </div>

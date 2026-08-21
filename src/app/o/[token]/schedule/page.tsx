@@ -4,6 +4,7 @@ import { PortalShell } from "@/components/portal/portal-shell";
 import { StepFrame } from "@/components/portal/step-frame";
 import { ScheduleConfirm } from "@/components/portal/schedule-confirm";
 import { getPortal, stepBySlug } from "@/lib/portal";
+import { safeExternalUrl } from "@/lib/utils";
 
 /** C7 — Scheduling. Runs on the business's own booking link. */
 export default async function ScheduleStep({
@@ -16,7 +17,11 @@ export default async function ScheduleStep({
   const step = stepBySlug(portal, "schedule");
   if (!step) redirect(`/o/${token}`);
 
-  const url = typeof step.config.url === "string" ? step.config.url : "";
+  // Same guard as payment: a customer-typed link rendered as an
+  // href for THEIR client to click.
+  const url =
+    safeExternalUrl(typeof step.config.url === "string" ? step.config.url : null) ??
+    "";
   const duration =
     typeof step.config.duration === "string" ? step.config.duration : null;
   const format =

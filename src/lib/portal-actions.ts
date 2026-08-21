@@ -396,6 +396,39 @@ export async function markScheduled(token: string): Promise<PortalResult> {
   redirect(onward(portal, "schedule"));
 }
 
+/* ── Payment ─────────────────────────────────────────────────── */
+
+/**
+ * The client says they have paid on the business's own payment link.
+ *
+ * Deliberately the client's word, like the scheduling confirmation.
+ * We are not in the payment path at all — no card, no Connect
+ * account, no webhook — so there is nothing here that could verify a
+ * charge, and pretending otherwise would be worse than being plain
+ * about it. The money landed in the business's own account, which is
+ * the record that settles any dispute; this only moves the step on.
+ *
+ * When real card payments land, this becomes the fallback for
+ * businesses that would rather use a link they already have.
+ */
+export async function markPaid(token: string): Promise<PortalResult> {
+  const found = await resolve(token, "payment");
+  if (!found) return { error: "This step isn't available." };
+  const { portal, step } = found;
+
+  // Same gate the payment screen enforces: a deposit is one of the
+  // two steps that sit behind email verification.
+  if (!portal.verified) return { error: "Confirm your email first." };
+
+  await writeStep(
+    portal,
+    step,
+    { confirmedAt: new Date().toISOString() },
+    true,
+  );
+  redirect(onward(portal, "payment"));
+}
+
 /* ── Email verification ──────────────────────────────────────── */
 
 /**

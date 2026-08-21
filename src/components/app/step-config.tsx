@@ -52,6 +52,8 @@ export interface StepConfigState {
   fields: InfoField[];
   amount: string;
   bookingUrl: string;
+  /** Where the client actually pays. The business's own link. */
+  paymentUrl: string;
 }
 
 /** Stable-ish key from a label, so config keys stay readable. */
@@ -91,6 +93,7 @@ export function readConfig(
     fields: Array.isArray(c.fields) ? (c.fields as InfoField[]) : [],
     amount: amountCents !== null ? (amountCents / 100).toFixed(2) : "",
     bookingUrl: typeof c.url === "string" ? c.url : "",
+    paymentUrl: typeof c.payUrl === "string" ? c.payUrl : "",
   };
 }
 
@@ -139,8 +142,16 @@ export function writeConfig(
 
     case "payment": {
       const cents = Math.round(Number(s.amount.replace(/[^0-9.]/g, "")) * 100);
+      // The amount is what makes the step real; the link is strongly
+      // encouraged but optional, exactly like scheduling's, so an
+      // agency that invoices by hand is not locked out of the step.
       return Number.isFinite(cents) && cents > 0
-        ? { amountCents: cents, currency: "usd", description: title }
+        ? {
+            amountCents: cents,
+            currency: "usd",
+            description: title,
+            payUrl: s.paymentUrl.trim(),
+          }
         : null;
     }
 
@@ -233,15 +244,32 @@ export function StepConfigEditor({
 
   if (type === "payment") {
     return (
-      <Field label="Amount" help="Collected into your own Stripe account.">
-        <Input
-          leading="$"
-          value={state.amount}
-          onChange={(e) => set("amount", e.target.value)}
-          placeholder="2,500.00"
-          inputMode="decimal"
-        />
-      </Field>
+      <div className="flex flex-col gap-5">
+        <Field label="Amount" help="What the client owes at this step.">
+          <Input
+            leading="$"
+            value={state.amount}
+            onChange={(e) => set("amount", e.target.value)}
+            placeholder="2,500.00"
+            inputMode="decimal"
+          />
+        </Field>
+
+        {/* Bring your own link, exactly like scheduling. We are a
+            signpost, not a cashier: the money goes straight from the
+            client to whatever the business already uses, so nothing
+            here ever touches a card number. */}
+        <Field
+          label="Payment link"
+          help="Where they pay — your Stripe payment link, PayPal, bKash, or an invoice page. Leave blank to send payment details yourself."
+        >
+          <Input
+            value={state.paymentUrl}
+            onChange={(e) => set("paymentUrl", e.target.value)}
+            placeholder="buy.stripe.com/your-link"
+          />
+        </Field>
+      </div>
     );
   }
 

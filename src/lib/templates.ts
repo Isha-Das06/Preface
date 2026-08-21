@@ -88,7 +88,7 @@ function deposit(title: string): TemplateStep {
   return {
     type: "payment",
     title,
-    description: "Paid securely to us via Stripe.",
+    description: "Pay on our secure payment page, then confirm here.",
     required: true,
     configured: false,
     // The one dependency that ships on by default: nobody should be
@@ -331,7 +331,7 @@ export const BLANK_STEPS: Record<StepType, TemplateStep> = {
   payment: {
     type: "payment",
     title: "Deposit",
-    description: "Paid securely to us via Stripe.",
+    description: "Pay on our secure payment page, then confirm here.",
     required: true,
     configured: false,
     requiresPrevious: true,

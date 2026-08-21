@@ -2,16 +2,16 @@ import { redirect } from "next/navigation";
 import { PortalShell } from "@/components/portal/portal-shell";
 import { StepFrame } from "@/components/portal/step-frame";
 import { PaymentPanel } from "@/components/portal/payment-panel";
-import { getPortal, getPayment, stepBySlug } from "@/lib/portal";
+import { getPortal, stepBySlug } from "@/lib/portal";
+import { safeExternalUrl } from "@/lib/utils";
 
 /**
  * C6 — Payment.
  *
- * The card fields are inert until Goal 10 replaces them with Stripe
- * Elements, which means card data never touches our origin — that is
- * both the compliance position and the trust story, so the copy
- * already says it. The submit control is explicitly pending rather
- * than a button that appears to charge and does not.
+ * The client pays on the business's own payment link and confirms
+ * here. Card data never touches this origin because there is no card
+ * field — that is both the compliance position and the reason the
+ * product works for a business in a country Stripe does not serve.
  *
  * The screen itself lives in PaymentPanel, shared with the business's
  * step preview so the two can never disagree.
@@ -43,8 +43,6 @@ export default async function PaymentStep({
     currency: currency.toUpperCase(),
   }).format(cents / 100);
 
-  const paid = await getPayment(step.id);
-
   return (
     <PortalShell business={portal.business} token={token}>
       <StepFrame
@@ -54,10 +52,14 @@ export default async function PaymentStep({
         title={step.title}
       >
         <PaymentPanel
+          token={token}
           amount={amount}
           description={description}
           businessName={portal.business.name}
-          paidAt={paid?.paid_at}
+          payUrl={safeExternalUrl(
+            typeof step.config.payUrl === "string" ? step.config.payUrl : null,
+          )}
+          paid={Boolean(step.completedAt)}
         />
       </StepFrame>
     </PortalShell>

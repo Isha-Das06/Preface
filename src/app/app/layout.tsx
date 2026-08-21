@@ -3,12 +3,12 @@ import { MobileNav, Sidebar } from "@/components/app/nav";
 import { Toaster, TooltipProvider } from "@/components/ui";
 import { getBusiness, getClients } from "@/lib/queries";
 
-const PLAN_LIMITS: Record<string, number | null> = {
-  trial: 5,
-  solo: 5,
-  studio: 25,
-  agency: null, // unlimited
-};
+/**
+ * No plan, no seat limit, nothing to pay. Preface is free while it is
+ * in beta, and a product that shows you a quota it never enforces is
+ * just an advert for a bill that does not exist yet. The `plan` and
+ * `trial_ends_at` columns stay on the row for the day billing lands.
+ */
 
 export default async function AppLayout({ children }: LayoutProps<"/app">) {
   const business = await getBusiness();
@@ -25,12 +25,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   return (
     <TooltipProvider>
       <div className="flex min-h-dvh">
-        <Sidebar
-          businessName={business.name}
-          plan={business.plan}
-          activeCount={active}
-          activeLimit={PLAN_LIMITS[business.plan] ?? null}
-        />
+        <Sidebar businessName={business.name} activeCount={active} />
         {/* pb-20 on mobile clears the fixed bottom nav. */}
         <div className="flex min-w-0 flex-1 flex-col pb-20 md:pb-0">
           {children}

@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState } from "react";
-import { ExternalLink } from "lucide-react";
 import {
   Button,
   Card,
@@ -11,37 +10,23 @@ import {
   Checkbox,
   Field,
   Input,
-  PendingButton,
-  ProgressBar,
   Textarea,
 } from "@/components/ui";
 import { LogoUpload } from "./logo-upload";
 import { updateSettings } from "@/lib/actions";
 import type { Business } from "@/lib/supabase/types";
-
-const PLAN_LIMITS: Record<string, number> = {
-  trial: 5,
-  solo: 5,
-  studio: 25,
-  agency: Infinity,
-};
-
-export function SettingsForm({
-  business,
-  activeCount,
-}: {
-  business: Business;
-  activeCount: number;
-}) {
+/**
+ * There is no Plan card. Preface is free during the beta, so a panel
+ * naming a tier, counting down a trial, and offering a "Manage
+ * billing" button that opens nothing was three promises the product
+ * does not keep. It comes back when there is something to bill.
+ */
+export function SettingsForm({ business }: { business: Business }) {
   const [state, formAction, pending] = useActionState(
     async (_prev: { error?: string; ok?: true } | undefined, fd: FormData) =>
       updateSettings(fd),
     undefined,
   );
-
-  const limit = PLAN_LIMITS[business.plan] ?? 5;
-  const unlimited = !Number.isFinite(limit);
-
   return (
     <form action={formAction} className="flex flex-col gap-6">
       <Card>
@@ -56,7 +41,6 @@ export function SettingsForm({
           >
             <Input name="businessName" defaultValue={business.name} />
           </Field>
-
           <Field label="Logo" help="PNG, JPG, WebP or SVG, up to 2 MB. Falls back to a monogram.">
             {/* Saves on its own rather than with the form: it is an
                 upload, not a text field, and pretending otherwise
@@ -66,7 +50,6 @@ export function SettingsForm({
               businessName={business.name}
             />
           </Field>
-
           <Field
             label="Accent colour"
             help="Used on buttons and progress in your clients' portal."
@@ -84,7 +67,6 @@ export function SettingsForm({
               />
             </div>
           </Field>
-
           <Field
             label="Welcome message"
             help="The first thing a new client reads."
@@ -97,7 +79,6 @@ export function SettingsForm({
           </Field>
         </CardBody>
       </Card>
-
       <Card>
         <CardHeader>
           <CardTitle>Email</CardTitle>
@@ -118,7 +99,6 @@ export function SettingsForm({
           </Field>
         </CardBody>
       </Card>
-
       <Card>
         <CardHeader>
           <CardTitle>Reminders</CardTitle>
@@ -138,54 +118,6 @@ export function SettingsForm({
           />
         </CardBody>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Plan</CardTitle>
-        </CardHeader>
-        <CardBody className="flex flex-col gap-5">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-lg font-semibold text-ink-900 capitalize">
-                {business.plan}
-              </span>
-              {business.trial_ends_at && business.plan === "trial" && (
-                <span className="text-sm text-ink-500">
-                  Trial ends{" "}
-                  {new Date(business.trial_ends_at).toLocaleDateString("en-GB", {
-                    day: "numeric",
-                    month: "short",
-                  })}
-                </span>
-              )}
-            </div>
-            <PendingButton
-              size="sm"
-              reason="Opens Stripe's billing portal once payments are connected"
-            >
-              <ExternalLink className="size-3.5" />
-              Manage billing
-            </PendingButton>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <div className="flex items-baseline justify-between text-sm">
-              <span className="text-ink-600">Active onboardings</span>
-              <span className="text-ink-900" data-numeric>
-                {activeCount}
-                {unlimited ? "" : ` of ${limit}`}
-              </span>
-            </div>
-            {!unlimited && (
-              <ProgressBar value={activeCount} total={limit} />
-            )}
-            <p className="text-xs text-ink-500">
-              Completed onboardings don&apos;t count and stay available forever.
-            </p>
-          </div>
-        </CardBody>
-      </Card>
-
       <div className="flex items-center justify-between gap-4">
         <span className="text-sm" role="status">
           {state?.error ? (

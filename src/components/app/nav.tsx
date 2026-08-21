@@ -40,14 +40,10 @@ function Monogram() {
 
 export function Sidebar({
   businessName,
-  plan,
   activeCount,
-  activeLimit,
 }: {
   businessName: string;
-  plan: string;
   activeCount: number;
-  activeLimit: number | null;
 }) {
   const isActive = useIsActive();
 
@@ -94,8 +90,7 @@ export function Sidebar({
             {businessName}
           </span>
           <span className="truncate text-xs text-ink-500">
-            <span className="capitalize">{plan}</span> · {activeCount}
-            {activeLimit === null ? "" : `/${activeLimit}`} active
+            <span data-numeric>{activeCount}</span> active
           </span>
         </div>
         <SignOutButton />

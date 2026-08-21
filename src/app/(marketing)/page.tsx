@@ -55,7 +55,7 @@ const REPLACES = [
   "Google Forms",
   "Drive folder",
   "DocuSign",
-  "Stripe link",
+  "A payment link",
   "Calendly",
   "A tracking spreadsheet",
 ];
@@ -536,8 +536,8 @@ export default function Landing() {
             <dl className="grid gap-x-12 gap-y-7 md:grid-cols-2">
               {[
                 [
-                  "Payments go straight to your Stripe",
-                  "Your account, your payout schedule. We never take a cut and never hold funds.",
+                  "Payments go straight to you",
+                  "Your client pays on your own payment link — Stripe, PayPal, bKash, an invoice. We never touch the money, hold funds, or take a cut.",
                 ],
                 [
                   "Card details never touch us",
@@ -673,7 +673,7 @@ export default function Landing() {
             {[
               [
                 "Do I need to move my tools over?",
-                "No. Payments run through your own Stripe account. Scheduling uses your existing Calendly or Cal.com link. Nothing moves.",
+                "No. Deposits run through whatever payment link you already use. Scheduling uses your existing Calendly or Cal.com link. Nothing moves.",
               ],
               [
                 "What if my onboarding is different for every client?",

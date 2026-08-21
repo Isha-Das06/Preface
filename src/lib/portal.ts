@@ -7,7 +7,6 @@ import type {
   FileRow,
   Onboarding,
   OnboardingStep,
-  Payment,
   Signature,
   StepType,
 } from "./supabase/types";
@@ -218,12 +217,10 @@ export async function getSignature(stepId: string): Promise<Signature | null> {
   return (data as Signature | null) ?? null;
 }
 
-export async function getPayment(stepId: string): Promise<Payment | null> {
-  const svc = createServiceClient();
-  const { data } = await svc
-    .from("payments")
-    .select("*")
-    .eq("onboarding_step_id", stepId)
-    .maybeSingle();
-  return (data as Payment | null) ?? null;
-}
+/**
+ * There is deliberately no getPayment. The payment step records the
+ * client's own confirmation on the step itself, like scheduling, so
+ * nothing writes to `payments` yet. The table stays for the day card
+ * payments land; a read that always returns null would only look
+ * like a feature that exists.
+ */

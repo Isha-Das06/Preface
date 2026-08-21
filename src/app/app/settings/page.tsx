@@ -2,17 +2,17 @@ import { Settings as SettingsIcon } from "lucide-react";
 import { Card, EmptyState } from "@/components/ui";
 import { AppPage } from "@/components/app/page-shell";
 import { SettingsForm } from "@/components/app/settings-form";
-import { getBusiness, getClients } from "@/lib/queries";
+import { getBusiness } from "@/lib/queries";
 
 /**
  * B9 — Settings. Deliberately short.
  *
- * Branding, email, reminders, plan. No teams, no permissions, no
- * custom domains, no integrations tab. Fifty settings is how a
- * simple product stops feeling simple.
+ * Branding, email, reminders. No teams, no permissions, no custom
+ * domains, no integrations tab. Fifty settings is how a simple
+ * product stops feeling simple.
  */
 export default async function SettingsPage() {
-  const [business, clients] = await Promise.all([getBusiness(), getClients()]);
+  const business = await getBusiness();
 
   if (!business) {
     return (
@@ -28,15 +28,13 @@ export default async function SettingsPage() {
     );
   }
 
-  const active = clients.filter((c) => c.status !== "completed").length;
-
   return (
     <AppPage
       title="Settings"
       description="Branding, email and reminders."
       className="max-w-[720px]"
     >
-      <SettingsForm business={business} activeCount={active} />
+      <SettingsForm business={business} />
     </AppPage>
   );
 }
