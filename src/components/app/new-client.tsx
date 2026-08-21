@@ -31,7 +31,7 @@ export function NewClientButton({
 }: {
   full?: boolean;
   /** Only offered as a choice when there is more than one. */
-  workflows?: { id: string; name: string; stepCount: number }[];
+  workflows?: { id: string; name: string; clientStepCount: number }[];
   defaultWorkflowId?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -40,7 +40,7 @@ export function NewClientButton({
     company: string;
     onboardingId: string;
     token: string;
-    stepCount: number;
+    clientStepCount: number;
   } | null>(null);
   const [sending, startSend] = useTransition();
   const [emailed, setEmailed] = useState(false);
@@ -89,7 +89,7 @@ export function NewClientButton({
         company: result.company as string,
         onboardingId: result.onboardingId as string,
         token: result.token as string,
-        stepCount: result.stepCount as number,
+        clientStepCount: result.clientStepCount as number,
       });
     });
   }
@@ -133,7 +133,7 @@ export function NewClientButton({
             {/* docs/05-copy.md: offer to send it, but never insist —
                 plenty of agencies would rather paste the link into a
                 thread they already have going with the client. */}
-            {created.stepCount > 0 && (
+            {created.clientStepCount > 0 && (
               <div className="flex items-center gap-3">
                 <Button
                   size="sm"
@@ -163,7 +163,7 @@ export function NewClientButton({
               </div>
             )}
 
-            {created.stepCount === 0 ? (
+            {created.clientStepCount === 0 ? (
               // Honest rather than cheerful: a link with no steps is
               // a dead end, and the fix is one screen away.
               <p className="text-sm text-warn-fg">
@@ -173,8 +173,8 @@ export function NewClientButton({
               </p>
             ) : (
               <p className="text-sm text-ink-500">
-                They&apos;ll see {created.stepCount} step
-                {created.stepCount === 1 ? "" : "s"}.
+                They&apos;ll see {created.clientStepCount} step
+                {created.clientStepCount === 1 ? "" : "s"}.
               </p>
             )}
           </div>
@@ -228,7 +228,7 @@ export function NewClientButton({
                   onValueChange={setWorkflowId}
                   options={workflows.map((w) => ({
                     value: w.id,
-                    label: `${w.name} · ${w.stepCount} step${w.stepCount === 1 ? "" : "s"}`,
+                    label: `${w.name} · ${w.clientStepCount} step${w.clientStepCount === 1 ? "" : "s"}`,
                   }))}
                 />
               </Field>

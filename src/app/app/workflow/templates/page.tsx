@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { Card, CardBody } from "@/components/ui";
 import { MobileHeader } from "@/components/app/nav";
 import { TemplatePicker } from "@/components/app/template-picker";
-import { TEMPLATES } from "@/lib/templates";
+import { TEMPLATES, clientSteps } from "@/lib/templates";
 import { getWorkflows } from "@/lib/queries";
 
 /**
@@ -63,22 +63,24 @@ export default async function TemplatesPage({
             id: t.id,
             name: t.name,
             description: t.description,
-            stepCount: t.steps.length,
+            stepCount: clientSteps(t.steps).length,
           }))}
         />
 
         <Card className="bg-warn-100/50">
           <CardBody>
             <p className="text-sm text-warn-fg">
-              Applying a template replaces the{" "}
+              {/* Deliberately no count here. This one would have to
+                  be the TOTAL — a welcome note gets replaced too —
+                  and every other number in the product is what the
+                  client sees. Two different totals on neighbouring
+                  screens reads as a bug, so this says the scope in
+                  words instead. */}
+              Applying a template replaces everything currently in{" "}
               {selected ? (
-                <>
-                  <span className="font-medium">{selected.stepCount}</span> step
-                  {selected.stepCount === 1 ? "" : "s"} in{" "}
-                  <span className="font-medium">{selected.name}</span>
-                </>
+                <span className="font-medium">{selected.name}</span>
               ) : (
-                "current steps"
+                "this onboarding"
               )}
               . Anything already sent to a client keeps the steps it was sent
               with.

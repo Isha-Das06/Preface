@@ -18,6 +18,7 @@ import {
   type PortalData,
   type PortalStep,
 } from "./portal";
+import { clientSteps } from "./templates";
 
 /**
  * Write side of the client portal.
@@ -56,13 +57,18 @@ async function touch(portal: PortalData) {
 
   const { data: rows } = await svc
     .from("onboarding_steps")
-    .select("required, completed_at")
+    .select("type, required, completed_at")
     .eq("onboarding_id", portal.onboarding.id);
 
-  const outstanding = (rows ?? []).filter(
-    (r: { required: boolean; completed_at: string | null }) =>
-      r.required && !r.completed_at,
-  ).length;
+  /**
+   * clientSteps first. A welcome note has no screen, so nothing can
+   * ever set its completed_at — leaving one marked required would
+   * have held the onboarding at "in progress" forever, with no step
+   * the client could open to clear it.
+   */
+  const outstanding = clientSteps(
+    (rows ?? []) as { type: string; required: boolean; completed_at: string | null }[],
+  ).filter((r) => r.required && !r.completed_at).length;
 
   const done = outstanding === 0;
 

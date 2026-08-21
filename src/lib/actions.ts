@@ -4,7 +4,7 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "./supabase/server";
 import { sendInvitation, sendReminderEmail } from "./emails";
-import { BLANK_STEPS, getTemplate } from "./templates";
+import { BLANK_STEPS, clientSteps, getTemplate } from "./templates";
 import type {
   Business,
   Client,
@@ -264,7 +264,10 @@ export async function createClientAction(
     company,
     onboardingId: (onboarding as { id: string }).id,
     token: (onboarding as { token: string }).token,
-    stepCount: steps.length,
+    // What the client will actually work through. The welcome note is
+    // snapshotted too but has no screen, so counting it here told the
+    // business "they'll see 8 steps" above a link that shows 7.
+    clientStepCount: clientSteps(steps).length,
   };
 }
 

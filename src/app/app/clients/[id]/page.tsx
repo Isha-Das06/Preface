@@ -19,6 +19,7 @@ import { MobileHeader } from "@/components/app/nav";
 import { RemindButton } from "@/components/app/remind-button";
 import { CopyLinkButton } from "@/components/app/copy-link";
 import { getClient, getOnboardingFiles, relativeTime } from "@/lib/queries";
+import { clientSteps } from "@/lib/templates";
 
 /**
  * B3 — Client detail.
@@ -55,7 +56,16 @@ export default async function ClientDetail({
   const record = await getClient(id);
   if (!record) notFound();
 
-  const { client, onboarding, steps, events } = record;
+  const { client, onboarding, events } = record;
+
+  /**
+   * Only the steps the client actually works through. The welcome
+   * note is snapshotted onto the onboarding too, but it has no screen
+   * and can never be completed — counting it here showed the business
+   * "5 of 8" against the client's own "5 of 7", and a progress bar
+   * that could never fill.
+   */
+  const steps = clientSteps(record.steps);
 
   const completed = steps.filter((s) => s.completed_at).length;
   const firstOpen = steps.find((s) => !s.completed_at);

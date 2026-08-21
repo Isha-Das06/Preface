@@ -358,3 +358,47 @@ export const STEP_TYPE_LABELS: Record<StepType, string> = {
   payment: "Payment",
   scheduling: "Scheduling",
 };
+
+/**
+ * Step type -> the portal route segment that renders it.
+ *
+ * `instructions` is null deliberately: it has no screen of its own.
+ * It becomes the welcome copy at the top of the client's first page,
+ * so it is not one of the steps they work through.
+ *
+ * This lives here, in a module with no server imports, because both
+ * the portal (server) and the builder (browser) have to agree on it.
+ * When they disagreed, the business was told it had sent eight steps
+ * and the client was shown seven.
+ */
+export const SLUG_BY_TYPE: Record<StepType, string | null> = {
+  instructions: null,
+  info: "info",
+  questionnaire: "questions",
+  files: "files",
+  checklist: "access",
+  agreement: "agreement",
+  payment: "payment",
+  scheduling: "schedule",
+};
+
+/**
+ * True when this type is one of the steps the client works through.
+ *
+ * Takes a plain string because the database rows type `type` as one:
+ * an unrecognised value has no portal route either, so treating it as
+ * not-a-client-step is the honest answer rather than a crash.
+ */
+export function isClientStep(type: string): boolean {
+  return Boolean(SLUG_BY_TYPE[type as StepType]);
+}
+
+/**
+ * The steps a client actually sees, in order.
+ *
+ * Use this anywhere a step count is SHOWN, so every number in the
+ * product means the same thing the client's own "Step 3 of 7" does.
+ */
+export function clientSteps<T extends { type: string }>(steps: T[]): T[] {
+  return steps.filter((s) => isClientStep(s.type));
+}

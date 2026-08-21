@@ -29,7 +29,7 @@ export function TemplatePicker({
             key={t.id}
             value={t.id}
             label={t.name}
-            description={`${t.description} · ${t.stepCount} steps`}
+            description={`${t.description} · ${t.stepCount} step${t.stepCount === 1 ? "" : "s"}`}
           />
         ))}
       </RadioGroup>

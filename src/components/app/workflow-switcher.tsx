@@ -125,8 +125,10 @@ export function WorkflowSwitcher({
                     }
                   />
                   <span className="flex-1">{w.name}</span>
+                  {/* What a client gets, not how many rows the
+                      builder has — the same number as their link. */}
                   <span className="text-xs text-ink-500" data-numeric>
-                    {w.stepCount}
+                    {w.clientStepCount}
                   </span>
                 </MenuItem>
               ))}

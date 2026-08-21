@@ -4,12 +4,14 @@ import {
   createServiceClient,
   isSupabaseConfigured,
 } from "./supabase/server";
+import { clientSteps } from "./templates";
 import type {
   Business,
   FileRow,
   Client,
   Onboarding,
   OnboardingStatus,
+  StepType,
   WorkflowStep,
 } from "./supabase/types";
 
@@ -230,7 +232,15 @@ export interface EventItem {
 export interface WorkflowSummary {
   id: string;
   name: string;
+  /** Every row in the builder. What "replace these steps" destroys. */
   stepCount: number;
+  /**
+   * What a client would actually work through: enabled, set up, and
+   * not the welcome note. This is the number to show whenever the
+   * sentence is about what the CLIENT gets, so it matches the
+   * "Step 3 of 7" they see on their own link.
+   */
+  clientStepCount: number;
   /** Clients already sent this one. Blocks deleting it. */
   sentCount: number;
 }
@@ -249,22 +259,38 @@ export async function getWorkflows(): Promise<WorkflowSummary[]> {
 
   const [wfRes, stepRes, onbRes] = await Promise.all([
     supabase.from("workflows").select("id, name").order("created_at"),
-    supabase.from("workflow_steps").select("workflow_id"),
+    supabase
+      .from("workflow_steps")
+      .select("workflow_id, type, enabled, configured"),
     supabase.from("onboardings").select("workflow_id"),
   ]);
 
-  const steps = (stepRes.data ?? []) as { workflow_id: string }[];
+  const steps = (stepRes.data ?? []) as {
+    workflow_id: string;
+    type: StepType;
+    enabled: boolean;
+    configured: boolean;
+  }[];
   const onboardings = (onbRes.data ?? []) as { workflow_id: string }[];
 
   const count = (rows: { workflow_id: string }[], id: string) =>
     rows.filter((r) => r.workflow_id === id).length;
 
-  return ((wfRes.data ?? []) as { id: string; name: string }[]).map((w) => ({
-    id: w.id,
-    name: w.name,
-    stepCount: count(steps, w.id),
-    sentCount: count(onboardings, w.id),
-  }));
+  return ((wfRes.data ?? []) as { id: string; name: string }[]).map((w) => {
+    const mine = steps.filter((r) => r.workflow_id === w.id);
+
+    return {
+      id: w.id,
+      name: w.name,
+      stepCount: mine.length,
+      // Exactly the filter createClient snapshots by, then the same
+      // client-visible rule the portal renders by.
+      clientStepCount: clientSteps(
+        mine.filter((r) => r.enabled && r.configured),
+      ).length,
+      sentCount: count(onboardings, w.id),
+    };
+  });
 }
 
 /**

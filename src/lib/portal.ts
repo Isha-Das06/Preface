@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceClient } from "./supabase/server";
+import { SLUG_BY_TYPE } from "./templates";
 import type {
   Business,
   Client,
@@ -27,24 +28,15 @@ import type {
  */
 
 /**
- * Step type -> route segment.
- *
  * `instructions` has no screen of its own: it is a short note, and a
  * whole page the client must click through to read one paragraph is
  * a step that exists to be skipped. It renders as the welcome text
  * on the hub instead, and is excluded from the step list and the
  * progress count.
+ *
+ * The map now lives in ./templates so the builder can count steps by
+ * the same rule the portal renders them by.
  */
-const SLUG_BY_TYPE: Record<StepType, string | null> = {
-  instructions: null,
-  info: "info",
-  questionnaire: "questions",
-  files: "files",
-  checklist: "access",
-  agreement: "agreement",
-  payment: "payment",
-  scheduling: "schedule",
-};
 
 export const TYPE_BY_SLUG = Object.fromEntries(
   Object.entries(SLUG_BY_TYPE)

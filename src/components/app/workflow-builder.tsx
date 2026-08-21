@@ -55,7 +55,7 @@ import {
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { addStep, reorderSteps, toggleStep, updateStep } from "@/lib/actions";
-import { STEP_TYPE_LABELS } from "@/lib/templates";
+import { STEP_TYPE_LABELS, clientSteps } from "@/lib/templates";
 import {
   StepConfigEditor,
   readConfig,
@@ -231,8 +231,17 @@ export function WorkflowBuilder({
     });
   }
 
-  const enabled = steps.filter((s) => s.enabled);
-  const live = enabled.filter((s) => s.configured);
+  /**
+   * clientSteps drops the welcome note: it is snapshotted onto the
+   * onboarding but has no screen of its own, so counting it here
+   * promised eight steps above a link that shows seven.
+   *
+   * Both numbers below are taken AFTER that filter, or the note would
+   * reappear in the subtraction as a step "still needing setup".
+   */
+  const clientEnabled = clientSteps(steps.filter((s) => s.enabled));
+  const live = clientEnabled.filter((s) => s.configured);
+  const needsSetup = clientEnabled.length - live.length;
 
   return (
     <div className="flex flex-col gap-4">
@@ -293,11 +302,11 @@ export function WorkflowBuilder({
         <p className="text-sm text-ink-500">
           Your client sees <span data-numeric>{live.length}</span> step
           {live.length === 1 ? "" : "s"}.
-          {enabled.length > live.length && (
+          {needsSetup > 0 && (
             <>
               {" "}
-              <span data-numeric>{enabled.length - live.length}</span>{" "}
-              {enabled.length - live.length === 1
+              <span data-numeric>{needsSetup}</span>{" "}
+              {needsSetup === 1
                 ? "still needs setup and stays"
                 : "still need setup and stay"}{" "}
               hidden until then.
