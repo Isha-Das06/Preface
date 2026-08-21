@@ -6,10 +6,16 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createServiceClient } from "./supabase/server";
 import type {
+  Onboarding,
   OnboardingStep as OnboardingStepRow,
   Signature,
 } from "./supabase/types";
-import { sendClientCompletion, sendHandoff, sendVerification } from "./emails";
+import {
+  sendClientCompletion,
+  sendHandoff,
+  sendInvitation,
+  sendVerification,
+} from "./emails";
 import {
   getPortal,
   getStepFiles,
@@ -34,6 +40,15 @@ export type PortalResult = { error: string } | undefined;
 
 const VERIFICATION_TTL_MIN = 15;
 const MAX_VERIFICATION_ATTEMPTS = 5;
+/**
+ * Caps on ASKING for a code, which is what makes the attempt cap
+ * above mean anything. Resending resets attempts — correct for a
+ * client who mistyped — so without a limit here five guesses and a
+ * resend could repeat forever. Bounded now at 5 x 6 = 30 guesses
+ * against a six-digit code, and at six emails to a client's inbox.
+ */
+const MAX_VERIFICATION_RESENDS = 5;
+const RESEND_COOLDOWN_SEC = 60;
 
 /** Resolve token + slug, or fail closed. */
 async function resolve(token: string, slug: string) {
@@ -456,24 +471,44 @@ export async function sendVerificationCode(
 
   const svc = createServiceClient();
 
-  if (!force) {
-    const { data } = await svc
-      .from("onboardings")
-      .select("verification_code, verification_expires_at")
-      .eq("id", portal.onboarding.id)
-      .maybeSingle();
+  const { data } = await svc
+    .from("onboardings")
+    .select(
+      "verification_code, verification_expires_at, verification_resends, verification_last_sent_at",
+    )
+    .eq("id", portal.onboarding.id)
+    .maybeSingle();
 
-    const live = data as {
-      verification_code: string | null;
-      verification_expires_at: string | null;
-    } | null;
+  const live = data as {
+    verification_code: string | null;
+    verification_expires_at: string | null;
+    verification_resends: number;
+    verification_last_sent_at: string | null;
+  } | null;
 
-    if (
-      live?.verification_code &&
-      live.verification_expires_at &&
-      new Date(live.verification_expires_at) > new Date()
-    ) {
-      return undefined;
+  // An unexpired code already sitting in their inbox is the one they
+  // should be typing. Re-rendering the verify screen must not replace
+  // it, or a client who mistypes can never catch up with the mail.
+  if (
+    !force &&
+    live?.verification_code &&
+    live.verification_expires_at &&
+    new Date(live.verification_expires_at) > new Date()
+  ) {
+    return undefined;
+  }
+
+  if (force && live) {
+    if (live.verification_resends >= MAX_VERIFICATION_RESENDS) {
+      return {
+        error: `That's as many codes as we can send. Reply to ${portal.business.name}'s email and they'll help.`,
+      };
+    }
+    const last = live.verification_last_sent_at
+      ? new Date(live.verification_last_sent_at).getTime()
+      : 0;
+    if (Date.now() - last < RESEND_COOLDOWN_SEC * 1000) {
+      return { error: "Give it a minute, then ask for another." };
     }
   }
 
@@ -486,7 +521,14 @@ export async function sendVerificationCode(
       verification_expires_at: new Date(
         Date.now() + VERIFICATION_TTL_MIN * 60000,
       ).toISOString(),
+      // Reset per code: a fresh code deserves fresh tries. The resend
+      // counter is what stops that being a loop, and it only counts
+      // codes the client explicitly asked for.
       verification_attempts: 0,
+      verification_resends: force
+        ? (live?.verification_resends ?? 0) + 1
+        : (live?.verification_resends ?? 0),
+      verification_last_sent_at: new Date().toISOString(),
     })
     .eq("id", portal.onboarding.id);
 
@@ -549,6 +591,7 @@ export async function verifyCode(
       verification_code: null,
       verification_expires_at: null,
       verification_attempts: 0,
+      verification_resends: 0,
     })
     .eq("id", portal.onboarding.id);
 
@@ -802,4 +845,105 @@ export async function continueFromFiles(token: string): Promise<PortalResult> {
 
   await writeStep(portal, step, { uploaded: files.length }, true);
   redirect(onward(portal, "files"));
+}
+
+/* ── Link recovery ───────────────────────────────────────────── */
+
+/** How often one onboarding will re-send its own link. */
+const LINK_RESEND_COOLDOWN_MIN = 10;
+
+/**
+ * "My link doesn't work — send me a new one."
+ *
+ * The only action in the app that starts from an email address
+ * rather than a token, which makes it the only one a stranger can
+ * reach. Three rules follow from that:
+ *
+ * 1. It NEVER says whether the address is known. Same answer either
+ *    way, or this becomes a way to ask which of a agency's clients
+ *    exist.
+ * 2. Mail only ever goes to the address already on the record, so it
+ *    cannot be used to forward somebody else's link anywhere.
+ * 3. A per-onboarding cooldown, so it cannot be used to bombard a
+ *    client's inbox.
+ *
+ * The token itself is not reissued: the old link still works if it
+ * was merely lost, and rotating it would break the copy someone may
+ * have already opened elsewhere. What was actually missing was a way
+ * to be sent it again — this screen was a dead end, on the one
+ * screen whose entire job is recovery.
+ */
+export type LinkRecoveryResult = { error: string } | { sent: true } | undefined;
+
+export async function requestNewLink(
+  _prev: LinkRecoveryResult,
+  formData: FormData,
+): Promise<LinkRecoveryResult> {
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
+
+  if (!/.+@.+\..+/.test(email)) {
+    return { error: "That email doesn't look right." };
+  }
+
+  const svc = createServiceClient();
+
+  const { data: clients } = await svc
+    .from("clients")
+    .select("id")
+    .ilike("email", email);
+
+  const ids = ((clients ?? []) as { id: string }[]).map((c) => c.id);
+
+  // Deliberately no early return on an empty list: the caller gets
+  // the same answer, after the same work, whether or not we found
+  // anything.
+  if (ids.length) {
+    const { data: rows } = await svc
+      .from("onboardings")
+      .select("*")
+      .in("client_id", ids)
+      // A finished onboarding has nothing left to do; sending its
+      // link back would only confuse.
+      .is("completed_at", null);
+
+    const cutoff = Date.now() - LINK_RESEND_COOLDOWN_MIN * 60000;
+
+    for (const row of (rows ?? []) as (Onboarding & {
+      link_resent_at: string | null;
+    })[]) {
+      const last = row.link_resent_at
+        ? new Date(row.link_resent_at).getTime()
+        : 0;
+      if (last > cutoff) continue;
+
+      const portal = await getPortal(row.token);
+      if (!portal) continue;
+
+      // sendInvitation names the steps, so it wants the stored rows
+      // rather than the portal's mapped view of them.
+      const { data: steps } = await svc
+        .from("onboarding_steps")
+        .select("*")
+        .eq("onboarding_id", row.id)
+        .order("position");
+
+      await svc
+        .from("onboardings")
+        .update({ link_resent_at: new Date().toISOString() })
+        .eq("id", row.id);
+
+      await sendInvitation(
+        portal.business,
+        portal.client,
+        portal.onboarding,
+        (steps ?? []) as OnboardingStepRow[],
+      );
+    }
+  }
+
+  // Always the same answer. Whether that address is one of this
+  // agency's clients is not a question a stranger gets to ask.
+  return { sent: true };
 }

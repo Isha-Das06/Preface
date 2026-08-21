@@ -17,32 +17,54 @@ import { cn } from "@/lib/utils";
  * what the screen becomes beats describing it.
  */
 
-const STEPS = [
-  {
-    id: "account",
-    title: "Create your account",
-    body: "Done.",
-    done: true,
-  },
-  {
-    id: "workflow",
-    title: "Build your onboarding",
-    body: "Start from a template, turn off anything you don't need.",
-    done: true,
-    href: "/app/workflow",
-    cta: "Review it",
-    icon: Workflow,
-  },
-  {
-    id: "client",
-    title: "Add your first client",
-    body: "Name, company, email. You'll get a link straight away.",
-    done: false,
-    icon: Send,
-  },
-];
+/**
+ * The checklist reads the real state rather than asserting it. It
+ * used to hardcode `done: true` for the onboarding step, so an
+ * account that skipped the template was congratulated on building an
+ * onboarding that had nothing in it — on the one screen that decides
+ * whether a signup becomes a customer.
+ */
+function buildSteps(hasOnboarding: boolean) {
+  return [
+    {
+      id: "account",
+      title: "Create your account",
+      body: "Done.",
+      done: true,
+    },
+    {
+      id: "workflow",
+      title: "Build your onboarding",
+      body: hasOnboarding
+        ? "Start from a template, turn off anything you don't need."
+        : "Nothing in it yet. Start from a template — it takes a minute.",
+      done: hasOnboarding,
+      href: "/app/workflow",
+      cta: hasOnboarding ? "Review it" : "Build it",
+      icon: Workflow,
+    },
+    {
+      id: "client",
+      title: "Add your first client",
+      body: "Name, company, email. You'll get a link straight away.",
+      done: false,
+      icon: Send,
+    },
+  ];
+}
 
-export function FirstRun() {
+export function FirstRun({
+  workflows = [],
+}: {
+  /**
+   * The same list the populated screen passes to its own Add-client
+   * button. Without it this one silently sent every new client at
+   * whichever onboarding happened to be oldest, with no way to pick.
+   */
+  workflows?: { id: string; name: string; clientStepCount: number }[];
+}) {
+  const hasOnboarding = workflows.some((w) => w.clientStepCount > 0);
+  const STEPS = buildSteps(hasOnboarding);
   const remaining = STEPS.filter((s) => !s.done).length;
 
   return (
@@ -54,7 +76,7 @@ export function FirstRun() {
               <Sparkles className="size-4" />
               {remaining === 0
                 ? "You're set up"
-                : `${remaining} step to your first onboarding link`}
+                : `${remaining} step${remaining === 1 ? "" : "s"} to your first onboarding link`}
             </span>
             <h2 className="text-xl font-semibold text-ink-900">
               Get your first client onboarded
@@ -103,9 +125,15 @@ export function FirstRun() {
                   <span className="text-sm text-ink-500">{step.body}</span>
                 </div>
 
-                {!step.done && <NewClientButton />}
-                {step.done && step.href && (
-                  <Button asChild variant="ghost" size="sm">
+                {step.id === "client" && !step.done && (
+                  <NewClientButton workflows={workflows} />
+                )}
+                {step.href && (
+                  <Button
+                    asChild
+                    variant={step.done ? "ghost" : "primary"}
+                    size="sm"
+                  >
                     <Link href={step.href}>
                       {step.cta}
                       <ArrowRight className="size-3.5" />

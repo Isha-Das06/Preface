@@ -47,6 +47,11 @@ export function VerifyForm({
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
   const [resending, startResend] = useTransition();
   const [resent, setResent] = useState(false);
+  // Resending can be refused — a cooldown, or the cap that stops the
+  // attempt limit being reset forever. Announcing "a new code is on
+  // its way" regardless would leave them waiting for mail that was
+  // never sent.
+  const [resendError, setResendError] = useState<string | null>(null);
   const complete = digits.every((d) => d !== "");
 
   const [state, formAction] = useActionState(
@@ -114,6 +119,12 @@ export function VerifyForm({
         </CardBody>
       </Card>
 
+      {resendError && (
+        <p role="alert" className="text-sm text-danger-600">
+          {resendError}
+        </p>
+      )}
+
       <p className="text-sm text-ink-500">
         {resent ? (
           <>A new code is on its way to {email}.</>
@@ -126,7 +137,12 @@ export function VerifyForm({
               onClick={() =>
                 startResend(async () => {
                   // force: the client is telling us the one they have is no good.
-                  await sendVerificationCode(token, true);
+                  const result = await sendVerificationCode(token, true);
+                  if (result?.error) {
+                    setResendError(result.error);
+                    return;
+                  }
+                  setResendError(null);
                   setResent(true);
                 })
               }

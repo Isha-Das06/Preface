@@ -1,5 +1,5 @@
 import { LinkIcon } from "lucide-react";
-import { Card, CardBody, Field, Input, PendingButton } from "@/components/ui";
+import { RecoverForm } from "./recover-form";
 
 /**
  * C10 — Expired or invalid link.
@@ -11,8 +11,10 @@ import { Card, CardBody, Field, Input, PendingButton } from "@/components/ui";
  * when the token resolved to nothing, so there is no business to
  * name. Guessing one would be worse than saying nothing.
  *
- * Re-issuing the link needs email, which is Goal 11 — so the control
- * says so rather than claiming to have sent something.
+ * The form is real: it re-sends the existing link to the address on
+ * the record. It does not mint a new token — the old link works fine
+ * if it was merely lost, and rotating it would break the copy that
+ * may already be open in another tab.
  */
 export default function ExpiredLink() {
   return (
@@ -31,24 +33,7 @@ export default function ExpiredLink() {
           </p>
         </div>
 
-        <Card>
-          <CardBody className="flex flex-col gap-5">
-            <Field label="Your email">
-              <Input
-                type="email"
-                placeholder="you@company.com"
-                autoComplete="email"
-                disabled
-              />
-            </Field>
-            <PendingButton
-              className="w-full"
-              reason="Available once email is connected"
-            >
-              Send me a new link
-            </PendingButton>
-          </CardBody>
-        </Card>
+        <RecoverForm />
 
         <p className="text-sm text-ink-500">
           Still stuck? Reply to the email your onboarding link came in and it

@@ -55,7 +55,7 @@ export default async function WaitingOnPage({
         title="Welcome to Preface"
         description="One link between a client saying yes and the work starting."
       >
-        <FirstRun />
+        <FirstRun workflows={workflows} />
       </AppPage>
     );
   }
