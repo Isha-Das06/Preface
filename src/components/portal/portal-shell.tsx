@@ -34,7 +34,10 @@ export function PortalHeader({
   business,
   href,
 }: {
-  business: Business;
+  /** Narrowed to what the header actually paints, so the business's
+      own step preview can render it without shipping the whole
+      Business row — Stripe ids included — into the browser. */
+  business: Pick<Business, "name" | "logo_url">;
   href: string;
 }) {
   return (

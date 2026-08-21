@@ -112,12 +112,19 @@ export function SlideOver({
   description,
   children,
   footer,
+  wide = false,
   className,
 }: {
   title: string;
   description?: string;
   children?: React.ReactNode;
   footer?: React.ReactNode;
+  /**
+   * Room for a second column. The step editor uses it to sit the
+   * client's view of the step next to the fields that produce it;
+   * below `lg` the two stack and the width is spare anyway.
+   */
+  wide?: boolean;
   className?: string;
 }) {
   return (
@@ -125,7 +132,8 @@ export function SlideOver({
       <Overlay />
       <RD.Content
         className={cn(
-          "fixed inset-y-0 right-0 z-50 flex w-full max-w-[420px] flex-col",
+          "fixed inset-y-0 right-0 z-50 flex w-full flex-col",
+          wide ? "max-w-[1040px]" : "max-w-[420px]",
           "border-l border-ink-200 bg-surface shadow-lg",
           "focus:outline-none",
           "data-[state=open]:animate-[slide-in-right_var(--dur-slow)_var(--ease)]",

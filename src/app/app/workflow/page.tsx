@@ -5,7 +5,7 @@ import { Workflow as WorkflowIcon } from "lucide-react";
 import { AppPage } from "@/components/app/page-shell";
 import { WorkflowBuilder } from "@/components/app/workflow-builder";
 import { NewClientButton } from "@/components/app/new-client";
-import { getWorkflows, getWorkflowSteps } from "@/lib/queries";
+import { getBusiness, getWorkflows, getWorkflowSteps } from "@/lib/queries";
 import { WorkflowSwitcher } from "@/components/app/workflow-switcher";
 import type { BuilderStep } from "@/components/app/workflow-builder";
 
@@ -22,7 +22,10 @@ export default async function WorkflowPage({
   searchParams,
 }: PageProps<"/app/workflow">) {
   const { w } = await searchParams;
-  const workflows = await getWorkflows();
+  const [business, workflows] = await Promise.all([
+    getBusiness(),
+    getWorkflows(),
+  ]);
 
   // An unknown or missing id falls back to the oldest rather than
   // erroring — a stale bookmark should land somewhere sensible.
@@ -98,7 +101,19 @@ export default async function WorkflowPage({
           />
         </Card>
       ) : (
-        <WorkflowBuilder initial={builderSteps} workflowId={selected?.id} />
+        <WorkflowBuilder
+          initial={builderSteps}
+          workflowId={selected?.id}
+          // Only the four fields the client's view actually paints.
+          // Handing the whole row to a client component would ship
+          // Stripe ids and plan details into the browser for nothing.
+          business={{
+            name: business?.name ?? "Your business",
+            logo_url: business?.logo_url ?? null,
+            accent_color: business?.accent_color ?? "#1f6f4a",
+            welcome_message: business?.welcome_message ?? null,
+          }}
+        />
       )}
     </AppPage>
   );

@@ -61,6 +61,7 @@ import {
   readConfig,
   writeConfig,
 } from "./step-config";
+import { StepPreview, type PreviewBusiness } from "./step-preview";
 import type { StepType } from "@/lib/supabase/types";
 
 export interface BuilderStep {
@@ -180,9 +181,12 @@ function signature(steps: BuilderStep[]) {
 export function WorkflowBuilder({
   initial,
   workflowId,
+  business,
 }: {
   initial: BuilderStep[];
   workflowId?: string;
+  /** Branding for the live client preview inside the step editor. */
+  business: PreviewBusiness;
 }) {
   const [steps, setSteps] = useState(initial);
 
@@ -313,6 +317,8 @@ export function WorkflowBuilder({
         {editing && (
           <StepEditor
             step={editing}
+            siblings={steps}
+            business={business}
             onSaved={(patch) => {
               setSteps((prev) =>
                 prev.map((s) =>
@@ -339,9 +345,14 @@ export function WorkflowBuilder({
  */
 function StepEditor({
   step,
+  siblings,
+  business,
   onSaved,
 }: {
   step: BuilderStep;
+  /** The whole list, so the preview can number this step as the client will. */
+  siblings: BuilderStep[];
+  business: PreviewBusiness;
   onSaved: (patch: Partial<BuilderStep>) => void;
 }) {
   const [title, setTitle] = useState(step.title);
@@ -356,14 +367,45 @@ function StepEditor({
   const [config, setConfig] = useState(() => readConfig(step.type, step.config));
   const [pending, startTransition] = useTransition();
 
+  const effectiveTitle = title.trim() || step.title;
+
+  /**
+   * What a save would store, recomputed as you type. Null when there
+   * is nothing real yet, so saving a title never marks an empty step
+   * as ready and shows it to clients.
+   *
+   * The preview is fed from this rather than from the editor state,
+   * which is the whole reason it can be trusted: it shows what the
+   * client would get, not what is currently half-typed into a row.
+   */
+  const nextConfig = writeConfig(step.type, config, effectiveTitle);
+
+  /**
+   * Where this step sits in the client's numbering. It counts itself
+   * in even when it is not live yet, so "Step 2 of 4" reads as the
+   * client will see it once it is; `previewNote` says when it isn't.
+   *
+   * `instructions` is excluded because the portal has no screen for
+   * it — it becomes the welcome copy on the hub instead.
+   */
+  const shown = siblings.filter(
+    (s) =>
+      s.type !== "instructions" &&
+      (s.id === step.id || (s.enabled && s.configured)),
+  );
+
+  const previewNote = !nextConfig
+    ? "Hidden until it has content"
+    : !step.enabled
+      ? "Turned off, so nobody sees it"
+      : step.type === "instructions"
+        ? "Opens their first screen, not a step of its own"
+        : undefined;
+
   function save() {
     startTransition(async () => {
-      // Null when there is nothing real yet, so saving a title never
-      // marks an empty step as ready and shows it to clients.
-      const nextConfig = writeConfig(step.type, config, title.trim() || step.title);
-
       const result = await updateStep(step.id, {
-        title: title.trim() || step.title,
+        title: effectiveTitle,
         description,
         required,
         requiresPrevious: locked,
@@ -375,7 +417,7 @@ function StepEditor({
         return;
       }
       onSaved({
-        title: title.trim() || step.title,
+        title: effectiveTitle,
         description,
         required,
         requiresPrevious: locked,
@@ -390,6 +432,7 @@ function StepEditor({
     <SlideOver
       title="Edit step"
       description={step.title}
+      wide
       footer={
         <>
           <DialogClose asChild>
@@ -401,47 +444,66 @@ function StepEditor({
         </>
       }
     >
-      <div className="flex flex-col gap-5">
-        <Field label="Step title">
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-        </Field>
-        <Field
-          label="Instructions for the client"
-          help="Shown at the top of this step."
-        >
-          <Textarea
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+      {/* Fields on the left, the client's version of them on the
+          right. The preview sticks to the top of the scroll area so
+          it stays in view while you work down a long list of
+          questions — which is the moment you most want to see it. */}
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
+        <div className="flex flex-col gap-5">
+          <Field label="Step title">
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+          </Field>
+          <Field
+            label="Instructions for the client"
+            help="Shown at the top of this step."
+          >
+            <Textarea
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </Field>
+
+          <StepConfigEditor
+            type={step.type}
+            state={config}
+            setState={setConfig}
           />
-        </Field>
 
-        <StepConfigEditor
-          type={step.type}
-          state={config}
-          setState={setConfig}
-        />
+          <Checkbox
+            checked={required}
+            onCheckedChange={(v) => setRequired(Boolean(v))}
+            label="Required to finish onboarding"
+            description="Optional steps can be skipped by the client."
+          />
 
-        <Checkbox
-          checked={required}
-          onCheckedChange={(v) => setRequired(Boolean(v))}
-          label="Required to finish onboarding"
-          description="Optional steps can be skipped by the client."
-        />
+          {/* Dependencies, not sequencing. One checkbox — the moment
+              this becomes a rules builder we've become the thing we
+              exist not to be. */}
+          <Checkbox
+            checked={locked}
+            onCheckedChange={(v) => setLocked(Boolean(v))}
+            label="Locked until earlier steps are done"
+            description={
+              step.type === "payment"
+                ? "Recommended. Stops a client paying a deposit before the agreement is signed."
+                : "Most steps are better left open — a client with ten minutes should be able to do whatever they can."
+            }
+          />
+        </div>
 
-        {/* Dependencies, not sequencing. One checkbox — the moment
-            this becomes a rules builder we've become the thing we
-            exist not to be. */}
-        <Checkbox
-          checked={locked}
-          onCheckedChange={(v) => setLocked(Boolean(v))}
-          label="Locked until earlier steps are done"
-          description={
-            step.type === "payment"
-              ? "Recommended. Stops a client paying a deposit before the agreement is signed."
-              : "Most steps are better left open — a client with ten minutes should be able to do whatever they can."
-          }
-        />
+        <div className="lg:sticky lg:top-0">
+          <StepPreview
+            type={step.type}
+            title={effectiveTitle}
+            description={description}
+            config={nextConfig}
+            business={business}
+            index={shown.findIndex((s) => s.id === step.id) + 1}
+            total={shown.length}
+            note={previewNote}
+          />
+        </div>
       </div>
     </SlideOver>
   );
