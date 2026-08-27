@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Copy, Mail, Plus } from "lucide-react";
 import {
   Select,
@@ -14,6 +15,7 @@ import {
   toast,
 } from "@/components/ui";
 import { createClientAction, sendOnboarding } from "@/lib/actions";
+import { CUSTOM_WORKFLOW } from "@/lib/templates";
 
 /**
  * B4 — New client. A modal, not a page: three fields don't justify
@@ -45,6 +47,7 @@ export function NewClientButton({
   const [sending, startSend] = useTransition();
   const [emailed, setEmailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
   const [company, setCompany] = useState("");
   const [contact, setContact] = useState("");
   const [email, setEmail] = useState("");
@@ -85,6 +88,22 @@ export function NewClientButton({
         setError(result.error);
         return;
       }
+      /**
+       * A custom onboarding has nothing in it yet, so the link panel
+       * would be handing over a page with no steps. Go straight to
+       * the builder instead — that is the next thing to do, and the
+       * client is already saved, so nothing is lost on the way.
+       */
+      if (result.customWorkflowId) {
+        reset(false);
+        toast.success(`${result.company} added`, {
+          description: "Now build what you need from them.",
+        });
+        router.push(`/app/workflow?w=${result.customWorkflowId}`);
+        router.refresh();
+        return;
+      }
+
       setCreated({
         company: result.company as string,
         onboardingId: result.onboardingId as string,
@@ -194,7 +213,9 @@ export function NewClientButton({
                 loading={pending}
                 onClick={submit}
               >
-                Create link
+                {workflowId === CUSTOM_WORKFLOW
+                  ? "Save and build it"
+                  : "Create link"}
               </Button>
             </>
           }
@@ -218,21 +239,32 @@ export function NewClientButton({
             {/* Only asked when there is a genuine choice. One
                 onboarding means no question worth putting on the
                 screen. */}
-            {workflows.length > 1 && (
-              <Field
-                label="Which onboarding?"
-                help="They get a copy of this one, frozen as it is today."
-              >
-                <Select
-                  value={workflowId}
-                  onValueChange={setWorkflowId}
-                  options={workflows.map((w) => ({
+            {/* Always asked now, even with one onboarding: "custom"
+                is a real second answer, so there is always a choice
+                worth putting on the screen. */}
+            <Field
+              label="Which onboarding?"
+              help={
+                workflowId === CUSTOM_WORKFLOW
+                  ? "You'll write this one from scratch, just for them."
+                  : "They get a copy of this one, frozen as it is today."
+              }
+            >
+              <Select
+                value={workflowId}
+                onValueChange={setWorkflowId}
+                options={[
+                  ...workflows.map((w) => ({
                     value: w.id,
                     label: `${w.name} · ${w.clientStepCount} step${w.clientStepCount === 1 ? "" : "s"}`,
-                  }))}
-                />
-              </Field>
-            )}
+                  })),
+                  {
+                    value: CUSTOM_WORKFLOW,
+                    label: "Custom — build one just for them",
+                  },
+                ]}
+              />
+            </Field>
 
             <Field
               label="Email"

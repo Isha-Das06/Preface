@@ -12,6 +12,7 @@ import {
 import { PortalShell } from "@/components/portal/portal-shell";
 import { getPortal } from "@/lib/portal";
 import { recordOpen } from "@/lib/portal-actions";
+import { fillEmptyOnboarding } from "@/lib/snapshot";
 
 /**
  * C1 — Welcome / progress. The money shot.
@@ -35,8 +36,22 @@ export default async function PortalWelcome({
   params,
 }: PageProps<"/o/[token]">) {
   const { token } = await params;
-  const portal = await getPortal(token);
+  let portal = await getPortal(token);
   if (!portal) redirect(`/o/${token}/expired`);
+
+  /**
+   * A custom onboarding is built after its client record exists, so
+   * the first arrival may find nothing copied across yet. Filling it
+   * here — before anything is read for the render — is what stops the
+   * client seeing an empty page once and the real one on refresh.
+   *
+   * No-op for every onboarding that already has steps, so this costs
+   * a second read only in the case that would otherwise be broken.
+   */
+  if (portal.steps.length === 0) {
+    await fillEmptyOnboarding(portal.onboarding.id);
+    portal = (await getPortal(token)) ?? portal;
+  }
 
   const { business, client, steps, completedCount, welcomeMessage } = portal;
 

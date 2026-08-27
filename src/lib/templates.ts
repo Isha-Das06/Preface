@@ -402,3 +402,13 @@ export function isClientStep(type: string): boolean {
 export function clientSteps<T extends { type: string }>(steps: T[]): T[] {
   return steps.filter((s) => isClientStep(s.type));
 }
+
+/**
+ * "Build this client their own onboarding" in the Add-client dialog.
+ *
+ * It lives here rather than beside the action that reads it because
+ * actions.ts is a "use server" module, and those may export nothing
+ * but async functions — a single plain const in one strips every
+ * export from the file and the whole app stops importing.
+ */
+export const CUSTOM_WORKFLOW = "__custom__";

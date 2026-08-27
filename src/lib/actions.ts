@@ -4,7 +4,13 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "./supabase/server";
 import { sendInvitation, sendReminderEmail } from "./emails";
-import { BLANK_STEPS, clientSteps, getTemplate } from "./templates";
+import {
+  BLANK_STEPS,
+  CUSTOM_WORKFLOW,
+  clientSteps,
+  getTemplate,
+} from "./templates";
+import { fillEmptyOnboarding } from "./snapshot";
 import type {
   Business,
   Client,
@@ -178,12 +184,35 @@ export async function createClientAction(
     .maybeSingle();
   if (!business) return { error: "Finish setting up your business first." };
 
-  const workflowId = await resolveWorkflow(
-    String(formData.get("workflowId") ?? "") || undefined,
-  );
-  if (!workflowId) return { error: "Build your onboarding before adding a client." };
-
   const businessId = (business as { id: string }).id;
+
+  /**
+   * "Custom" means this client gets an onboarding of their own,
+   * built after they exist rather than chosen from what already
+   * does. It starts empty on purpose — the point is to write it —
+   * and the steps are copied across the first time the link is sent
+   * or opened. See fillEmptyOnboarding.
+   */
+  const requested = String(formData.get("workflowId") ?? "");
+  const custom = requested === CUSTOM_WORKFLOW;
+
+  let workflowId: string | null;
+  if (custom) {
+    const { data: made, error: wfErr } = await supabase
+      .from("workflows")
+      .insert({ business_id: businessId, name: `${company} onboarding` })
+      .select("id")
+      .single();
+    if (wfErr || !made) {
+      console.error("createClientAction: custom workflow failed", wfErr);
+      return { error: "Couldn't start a new onboarding for them." };
+    }
+    workflowId = (made as { id: string }).id;
+  } else {
+    workflowId = await resolveWorkflow(requested || undefined);
+  }
+
+  if (!workflowId) return { error: "Build your onboarding before adding a client." };
 
   const { data: client, error: clientErr } = await supabase
     .from("clients")
@@ -264,6 +293,10 @@ export async function createClientAction(
     company,
     onboardingId: (onboarding as { id: string }).id,
     token: (onboarding as { token: string }).token,
+    // Set only for "Custom", so the dialog knows to send them
+    // straight to the builder instead of showing a link to a
+    // onboarding that has nothing in it yet.
+    customWorkflowId: custom ? workflowId : undefined,
     // What the client will actually work through. The welcome note is
     // snapshotted too but has no screen, so counting it here told the
     // business "they'll see 8 steps" above a link that shows 7.
@@ -284,6 +317,11 @@ export async function sendOnboarding(
 ): Promise<ActionResult> {
   const supabase = await createClient();
   const now = new Date().toISOString();
+
+  // A custom onboarding is built AFTER the client record exists, so
+  // its steps may not have been copied across yet. No-op for every
+  // onboarding that already has them.
+  await fillEmptyOnboarding(onboardingId);
 
   const context = await loadMailContext(supabase, onboardingId);
   if (!context) return { error: "That onboarding no longer exists." };
@@ -367,6 +405,11 @@ export async function sendReminder(
   onboardingId: string,
 ): Promise<ActionResult> {
   const supabase = await createClient();
+
+  // A custom onboarding is built AFTER the client record exists, so
+  // its steps may not have been copied across yet. No-op for every
+  // onboarding that already has them.
+  await fillEmptyOnboarding(onboardingId);
 
   const context = await loadMailContext(supabase, onboardingId);
   if (!context) return { error: "That onboarding no longer exists." };
