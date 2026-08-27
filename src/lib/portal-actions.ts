@@ -25,6 +25,7 @@ import {
   type PortalStep,
 } from "./portal";
 import { clientSteps } from "./templates";
+import { isAllowedFile, rejectionMessage } from "./file-types";
 
 /**
  * Write side of the client portal.
@@ -634,6 +635,8 @@ interface FileRequestConfig {
   required: boolean;
   /** Set by the business when one file is never the answer. */
   multiple?: boolean;
+  /** Which file types this request takes. See lib/file-types. */
+  accept?: string;
 }
 
 /**
@@ -680,8 +683,18 @@ export async function requestUpload(
   const { portal, step } = found;
 
   const requests = (step.config.requests ?? []) as FileRequestConfig[];
-  if (!requests.some((r) => r.key === requestKey)) {
+  const request = requests.find((r) => r.key === requestKey);
+  if (!request) {
     return { error: "Unknown item." };
+  }
+
+  /**
+   * The browser checks this too, but that check is a courtesy. This
+   * one is the rule: nothing hands out an upload URL for a file the
+   * business did not ask for, whatever the page was persuaded to do.
+   */
+  if (!isAllowedFile(request.accept, filename)) {
+    return { error: rejectionMessage(request.accept, filename) };
   }
 
   if (sizeBytes <= 0) return { error: "That file looks empty." };
@@ -734,6 +747,13 @@ export async function confirmUpload(
   const prefix = uploadPrefix(portal.onboarding.id, step.id);
   if (!path.startsWith(`${prefix}/`) || path.includes("..")) {
     return { error: "That upload didn't look right." };
+  }
+
+  // Checked again on the way back in: requestUpload validated the
+  // name it was given, and this is a second, separately-supplied name
+  // that becomes what the business sees in their file list.
+  if (!isAllowedFile(request.accept, filename)) {
+    return { error: rejectionMessage(request.accept, filename) };
   }
 
   const svc = createServiceClient();

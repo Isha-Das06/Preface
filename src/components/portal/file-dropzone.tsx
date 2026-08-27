@@ -7,6 +7,12 @@ import { cn } from "@/lib/utils";
 import { Button, toast } from "@/components/ui";
 import { createStorageClient, UPLOAD_BUCKET } from "@/lib/supabase/browser";
 import { confirmUpload, removeUpload, requestUpload } from "@/lib/portal-actions";
+import {
+  acceptAttribute,
+  isAllowedFile,
+  kindDescription,
+  rejectionMessage,
+} from "@/lib/file-types";
 
 export interface UploadedFile {
   id: string;
@@ -21,6 +27,8 @@ export interface FileRequest {
   required: boolean;
   /** When true the client can send a batch, not just one file. */
   multiple?: boolean;
+  /** Which file types this request takes. See lib/file-types. */
+  accept?: string;
   uploaded: UploadedFile[];
 }
 
@@ -85,6 +93,24 @@ export function FileDropzone({
   async function upload(key: string, list: FileList | null) {
     const files = list ? Array.from(list) : [];
     if (files.length === 0 || busy) return;
+
+    /**
+     * Checked here as well as in the picker, because the picker's
+     * `accept` attribute is a filter and not a rule: drag-and-drop
+     * ignores it completely, and every file dialog has an "All
+     * files" escape hatch. The server checks again — this is the
+     * part that makes it a fast, clear "no" instead of a wasted
+     * upload that fails at the end.
+     */
+    const request = requests.find((r) => r.key === key);
+    const rejected = files.find((f) => !isAllowedFile(request?.accept, f.name));
+    if (rejected) {
+      toast.error("That file type isn't supported", {
+        description: rejectionMessage(request?.accept, rejected.name),
+      });
+      if (inputs.current[key]) inputs.current[key]!.value = "";
+      return;
+    }
 
     setBusy(key);
     try {
@@ -160,6 +186,14 @@ export function FileDropzone({
                 {r.hint}
                 {r.multiple && " You can send as many as you like."}
               </span>
+              {/* Say what will be accepted BEFORE they go looking for
+                  it. Being told after choosing is the annoying half
+                  of file validation. */}
+              {r.accept && r.accept !== "any" && (
+                <span className="text-sm text-ink-500">
+                  {kindDescription(r.accept)}
+                </span>
+              )}
             </div>
 
             <input
@@ -167,6 +201,7 @@ export function FileDropzone({
                 inputs.current[r.key] = el;
               }}
               type="file"
+              accept={acceptAttribute(r.accept)}
               multiple={r.multiple}
               className="sr-only"
               onChange={(e) => void upload(r.key, e.target.files)}

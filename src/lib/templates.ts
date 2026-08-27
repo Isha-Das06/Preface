@@ -131,10 +131,10 @@ export const TEMPLATES: Template[] = [
         configured: true,
         config: {
           requests: [
-            { key: "logo", label: "Logo", hint: "SVG or PNG, ideally on a transparent background", required: true },
-            { key: "guidelines", label: "Brand guidelines", hint: "PDF", required: false },
-            { key: "photography", label: "Product photography", hint: "Anything you have — we can work with rough shots", required: false },
-            { key: "existing", label: "Existing ad creative", hint: "So we don't repeat what's already been tried", required: false },
+            { key: "logo", label: "Logo", hint: "SVG or PNG, ideally on a transparent background", required: true, accept: "image" },
+            { key: "guidelines", label: "Brand guidelines", hint: "PDF", required: false, accept: "pdf" },
+            { key: "photography", label: "Product photography", hint: "Anything you have — we can work with rough shots", required: false, accept: "image" },
+            { key: "existing", label: "Existing ad creative", hint: "So we don't repeat what's already been tried", required: false, accept: "image" },
           ],
         },
       },
@@ -237,7 +237,7 @@ export const TEMPLATES: Template[] = [
         configured: true,
         config: {
           requests: [
-            { key: "context", label: "Relevant documents", hint: "Strategy decks, reports, org charts", required: false },
+            { key: "context", label: "Relevant documents", hint: "Strategy decks, reports, org charts", required: false, accept: "doc" },
           ],
         },
       },

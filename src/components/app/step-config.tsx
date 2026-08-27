@@ -2,6 +2,7 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { Button, Checkbox, Field, Input, Select, Textarea } from "@/components/ui";
+import { FILE_KIND_OPTIONS, fileKind, type FileKind } from "@/lib/file-types";
 import type { StepType } from "@/lib/supabase/types";
 
 /**
@@ -30,6 +31,8 @@ export interface FileRequest {
   required: boolean;
   /** Let the client send a batch against this one item. */
   multiple?: boolean;
+  /** Which file types this request will take. See lib/file-types. */
+  accept?: FileKind;
 }
 export interface ChecklistItem {
   key: string;
@@ -122,7 +125,11 @@ export function writeConfig(
     case "files": {
       const requests = s.requests
         .filter((r) => r.label.trim())
-        .map((r, i) => ({ ...r, key: r.key || slugKey(r.label, `file-${i}`) }));
+        .map((r, i) => ({
+          ...r,
+          key: r.key || slugKey(r.label, `file-${i}`),
+          accept: fileKind(r.accept),
+        }));
       return requests.length ? { requests } : null;
     }
 
@@ -386,6 +393,20 @@ export function StepConfigEditor({
                   )
                 }
               />
+              <Select
+                className="w-full sm:w-56"
+                value={fileKind(r.accept)}
+                onValueChange={(v) =>
+                  set(
+                    "requests",
+                    state.requests.map((x, n) =>
+                      n === i ? { ...x, accept: v as FileKind } : x,
+                    ),
+                  )
+                }
+                options={FILE_KIND_OPTIONS}
+              />
+
               <div className="flex flex-wrap gap-x-5 gap-y-2">
                 <Checkbox
                   checked={r.required}
@@ -421,7 +442,14 @@ export function StepConfigEditor({
           onClick={() =>
             set("requests", [
               ...state.requests,
-              { key: "", label: "", hint: "", required: false, multiple: false },
+              {
+                key: "",
+                label: "",
+                hint: "",
+                required: false,
+                multiple: false,
+                accept: "any",
+              },
             ])
           }
         />

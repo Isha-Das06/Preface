@@ -140,6 +140,7 @@ function Body({
             hint: str(r.hint),
             required: Boolean(r.required),
             multiple: Boolean(r.multiple),
+            accept: str(r.accept, "any"),
             uploaded: [],
           }))}
           description={description || undefined}
