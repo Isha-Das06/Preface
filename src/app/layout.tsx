@@ -54,8 +54,25 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${jakarta.variable} ${jetbrains.variable} h-full antialiased`}
+      /**
+       * Browser extensions stamp attributes onto <html> and <body>
+       * before React hydrates — accessibility tools, password
+       * managers, dark-mode helpers all do it. The server never
+       * rendered those attributes, so React reports a mismatch it
+       * says it will not patch up, and the real console gets buried
+       * under a warning about a page that is in fact correct.
+       *
+       * This suppresses the warning ONE LEVEL DEEP: this element's
+       * own attributes, and nothing inside it. A genuine mismatch in
+       * any component still reports normally, which is the point —
+       * silencing the whole tree would have hidden the dnd-kit id
+       * bug that took a session to find.
+       */
+      suppressHydrationWarning
     >
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }
