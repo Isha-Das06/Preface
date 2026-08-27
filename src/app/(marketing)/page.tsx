@@ -105,7 +105,7 @@ export default function Landing() {
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ink-500">
                 <span className="flex items-center gap-1.5">
                   <Check className="size-4 text-accent-600" strokeWidth={2.5} />
-                  Free for 14 days
+                  Free while in beta
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Check className="size-4 text-accent-600" strokeWidth={2.5} />
@@ -597,52 +597,40 @@ export default function Landing() {
       </div>
 
       {/* ================================= PRICING PREVIEW
-          Publishing the actual number on the landing page shortens
-          the sales cycle and filters out unqualified traffic. A
-          "contact us for pricing" gap is friction, not mystery. */}
+          Naming a price on the landing page shortens the sales cycle
+          and filters out unqualified traffic — but only when the
+          price is real. There are no plans yet, so the honest version
+          of that is saying so, rather than three tiers nothing can
+          charge for. The numbers are in docs/05-copy.md for the day
+          there is billing to attach them to. */}
       <Section>
         <div className="flex flex-col gap-10">
           <Reveal className="flex flex-col gap-3">
             <Eyebrow>Pricing</Eyebrow>
             <h2 className="text-3xl font-light tracking-[-0.02em] text-ink-900 sm:text-4xl">
-              From $49 a month.
+              Free while we&apos;re in beta.
             </h2>
             <p className="measure text-lg text-ink-600">
-              Priced on how many onboardings are running at once. Completed ones
-              don't count and stay available forever.
+              Every part of it, with no limit on how many clients you onboard.
+              There is no card to enter and nothing to cancel.
             </p>
           </Reveal>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            {[
-              ["Solo", "$49", "5 at a time"],
-              ["Studio", "$99", "25 at a time"],
-              ["Agency", "$199", "Unlimited"],
-            ].map(([name, price, active], i) => (
-              <Reveal key={name} delay={i * 60}>
-                <div
-                  className={cn(
-                    "flex h-full flex-col gap-1 rounded-lg border bg-surface p-5",
-                    name === "Studio" ? "border-accent-600" : "border-ink-200",
-                  )}
-                >
-                  <span className="text-sm font-medium text-ink-700">
-                    {name}
-                  </span>
-                  <span
-                    className="text-3xl font-semibold tracking-tight text-ink-900"
-                    data-numeric
-                  >
-                    {price}
-                    <span className="text-base font-normal text-ink-500">
-                      /mo
-                    </span>
-                  </span>
-                  <span className="text-sm text-ink-500">{active}</span>
-                </div>
-              </Reveal>
-            ))}
-          </div>
+          <Reveal delay={120}>
+            <div className="flex flex-col gap-3 rounded-lg border border-accent-600 bg-surface p-6">
+              <span className="text-sm font-medium text-ink-700">
+                Everything, no limits
+              </span>
+              <span className="text-3xl font-semibold tracking-tight text-ink-900">
+                Free
+              </span>
+              <p className="measure text-base text-ink-600">
+                We&apos;ll charge for this one day, and we&apos;ll tell you long
+                before we do. Nothing you build now goes away when we start, and
+                nobody gets billed without choosing to be.
+              </p>
+            </div>
+          </Reveal>
 
           <Reveal delay={200}>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-base text-ink-600">
@@ -651,7 +639,7 @@ export default function Landing() {
                 href="/pricing"
                 className="flex min-h-11 items-center gap-1.5 font-medium text-accent-600 underline decoration-accent-300 underline-offset-4 hover:decoration-accent-600"
               >
-                Compare plans
+                What that means
                 <ArrowRight className="size-3.5" />
               </Link>
             </div>
@@ -707,7 +695,8 @@ export default function Landing() {
               Send your first onboarding link today.
             </h2>
             <p className="text-lg text-ink-600">
-              Set it up in ten minutes. Free for 14 days, no card.
+              Set it up in ten minutes. Free while Preface is in beta, and
+              there's no card to enter.
             </p>
             <Button asChild variant="primary" size="lg">
               <Link href="/signup">

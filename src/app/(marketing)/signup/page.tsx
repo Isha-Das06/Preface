@@ -7,7 +7,7 @@ export default function Signup() {
   return (
     <AuthShell
       title="Start onboarding clients properly."
-      subtitle="Fourteen days free. No card."
+      subtitle="Free while we're in beta. No card."
       footer={
         <>
           Already have an account? <AuthLink href="/login">Log in</AuthLink>

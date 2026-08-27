@@ -206,9 +206,9 @@ async function provision(
     slug: `${slugify(name)}-${Math.random().toString(36).slice(2, 7)}`,
     reply_to_email: user.email,
     sender_name: name,
-    trial_ends_at: new Date(
-      Date.now() + 14 * 24 * 60 * 60 * 1000,
-    ).toISOString(),
+    // No trial_ends_at. Preface is free during the beta, so stamping
+    // a deadline on every new account would only put a date in the
+    // database that nothing honours and nobody was told about.
   });
 
   if (bizErr) {
