@@ -39,6 +39,13 @@ export interface ChecklistItem {
   label: string;
   instruction: string;
   required: boolean;
+  /**
+   * The exact thing the client has to paste into the other system —
+   * an email to invite, a Business ID to enter. Without it the
+   * instruction says "invite your agency email" to somebody who has
+   * no idea what that address is.
+   */
+  detail?: string;
 }
 export interface InfoField {
   name: string;
@@ -136,7 +143,11 @@ export function writeConfig(
     case "checklist": {
       const items = s.items
         .filter((i) => i.label.trim())
-        .map((i, n) => ({ ...i, key: i.key || slugKey(i.label, `item-${n}`) }));
+        .map((i, n) => ({
+          ...i,
+          key: i.key || slugKey(i.label, `item-${n}`),
+          detail: (i.detail ?? "").trim(),
+        }));
       return items.length ? { items } : null;
     }
 
@@ -504,6 +515,24 @@ export function StepConfigEditor({
                   )
                 }
               />
+              <Field
+                label="What they need to enter"
+                help="The email or ID they have to paste. Shown with a copy button, so nobody retypes it wrong."
+              >
+                <Input
+                  value={it.detail ?? ""}
+                  placeholder="you@youragency.com"
+                  onChange={(e) =>
+                    set(
+                      "items",
+                      state.items.map((x, n) =>
+                        n === i ? { ...x, detail: e.target.value } : x,
+                      ),
+                    )
+                  }
+                />
+              </Field>
+
               <Checkbox
                 checked={it.required}
                 onCheckedChange={(v) =>
@@ -524,7 +553,7 @@ export function StepConfigEditor({
           onClick={() =>
             set("items", [
               ...state.items,
-              { key: "", label: "", instruction: "", required: true },
+              { key: "", label: "", instruction: "", required: true, detail: "" },
             ])
           }
         />

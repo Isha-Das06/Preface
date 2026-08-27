@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui";
 import { setChecklistItem } from "@/lib/portal-actions";
@@ -12,6 +12,12 @@ export interface ChecklistItem {
   instruction: string;
   required: boolean;
   done: boolean;
+  /**
+   * The exact string to paste into the other system. "Invite your
+   * agency email" is unanswerable to the person reading it unless
+   * the address is on the screen too.
+   */
+  detail?: string;
 }
 
 /**
@@ -31,6 +37,44 @@ export interface ChecklistItem {
  * write fails — a checkbox that stays ticked after a failed save is
  * how a client believes they are done when the business sees nothing.
  */
+function DetailChip({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <span
+      className="mt-1 flex w-fit max-w-full items-center gap-2 rounded-md border border-ink-200 bg-ink-50 py-1.5 pr-1.5 pl-2.5"
+      // The label wrapping this list is a <label>, so a click here
+      // would otherwise tick the box as well as copy.
+      onClick={(e) => e.preventDefault()}
+    >
+      <span className="min-w-0 flex-1 truncate font-mono text-sm text-ink-900">
+        {value}
+      </span>
+      <button
+        type="button"
+        onClick={() => {
+          void navigator.clipboard?.writeText(value);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1600);
+        }}
+        className="flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-xs font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus)"
+      >
+        {copied ? (
+          <>
+            <Check className="size-3.5 text-accent-600" strokeWidth={3} />
+            Copied
+          </>
+        ) : (
+          <>
+            <Copy className="size-3.5" />
+            Copy
+          </>
+        )}
+      </button>
+    </span>
+  );
+}
+
 export function AccessChecklist({
   token,
   items,
@@ -102,6 +146,7 @@ export function AccessChecklist({
                 <span className="measure-prose text-sm text-ink-600">
                   {item.instruction}
                 </span>
+                {item.detail && <DetailChip value={item.detail} />}
               </span>
             </label>
           </li>

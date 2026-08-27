@@ -9,6 +9,7 @@ interface ConfigItem {
   label: string;
   instruction: string;
   required: boolean;
+  detail?: string;
 }
 
 /** C11 — Checklist. Things done elsewhere, confirmed here. */
@@ -39,7 +40,18 @@ export default async function AccessStep({
       >
         <AccessChecklist
           token={token}
-          items={items.map((i) => ({ ...i, done: Boolean(done[i.key]) }))}
+          items={items.map((i) => ({
+            ...i,
+            done: Boolean(done[i.key]),
+            /**
+             * No fallback to the business's reply-to address. Some
+             * instructions already name the right one inline ("invite
+             * ads@acme.co"), and quietly showing a DIFFERENT address
+             * underneath is worse than showing none — the client then
+             * has two and no way to tell which is meant.
+             */
+            detail: (i.detail ?? "").trim(),
+          }))}
         />
       </StepFrame>
     </PortalShell>

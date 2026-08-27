@@ -163,6 +163,7 @@ function Body({
               label: str(i.label),
               instruction: str(i.instruction),
               required: Boolean(i.required),
+              detail: str(i.detail),
               done: false,
             }))}
           />
