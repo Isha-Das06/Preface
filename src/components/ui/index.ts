@@ -40,6 +40,7 @@ export {
 } from "./badge";
 export { Avatar, Divider } from "./avatar";
 export { PageHeader } from "./page-header";
+export { Logo } from "./logo";
 
 export {
   ProgressBar,

@@ -1,13 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui";
-
-function Monogram() {
-  return (
-    <span className="flex size-7 items-center justify-center rounded-md bg-accent-600 text-xs font-semibold text-on-accent">
-      P
-    </span>
-  );
-}
+import { Button, Logo } from "@/components/ui";
 
 export default function MarketingLayout({
   children,
@@ -24,7 +16,7 @@ export default function MarketingLayout({
             // the link a full-height touch target.
             className="-mx-2 flex min-h-11 items-center gap-2.5 rounded-md px-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus)"
           >
-            <Monogram />
+            <Logo className="size-7" title="" />
             <span className="text-lg font-semibold text-ink-900">Preface</span>
           </Link>
 
@@ -49,7 +41,7 @@ export default function MarketingLayout({
       <footer className="border-t border-ink-150">
         <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-4 px-5 py-8 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2.5">
-            <Monogram />
+            <Logo className="size-7" title="" />
             <span className="text-sm text-ink-500">
               Preface — onboard clients without the back-and-forth.
             </span>

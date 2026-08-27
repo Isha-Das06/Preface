@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, LayoutList, Settings, Users, Workflow } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Avatar } from "@/components/ui";
+import { Avatar, Logo } from "@/components/ui";
 import { SignOutButton } from "./sign-out";
 
 /**
@@ -30,14 +30,6 @@ function useIsActive() {
     exact ? pathname === href : pathname.startsWith(href);
 }
 
-function Monogram() {
-  return (
-    <span className="flex size-7 items-center justify-center rounded-md bg-accent-600 text-xs font-semibold text-on-accent">
-      P
-    </span>
-  );
-}
-
 export function Sidebar({
   businessName,
   activeCount,
@@ -50,7 +42,7 @@ export function Sidebar({
   return (
     <aside className="hidden w-[232px] shrink-0 flex-col border-r border-ink-200 bg-surface md:flex">
       <div className="flex items-center gap-2.5 px-5 py-5">
-        <Monogram />
+        <Logo className="size-7" glow title="" />
         <span className="text-base font-semibold text-ink-900">Preface</span>
       </div>
 
@@ -134,7 +126,7 @@ export function MobileNav() {
 export function MobileHeader({ title }: { title: string }) {
   return (
     <header className="flex items-center gap-2.5 border-b border-ink-200 bg-surface px-4 py-3 md:hidden">
-      <Monogram />
+      <Logo className="size-7" glow title="" />
       <span className="text-base font-semibold text-ink-900">{title}</span>
     </header>
   );

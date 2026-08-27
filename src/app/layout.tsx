@@ -41,8 +41,14 @@ const jetbrains = localFont({
 });
 
 export const metadata: Metadata = {
+  /**
+   * The tab reads "Preface". The old default put a whole sentence in
+   * it, which a browser truncates to "Preface — Stop sendin…" — the
+   * half that identifies the product survives, the rest is noise in a
+   * strip of tabs. The pitch lives on the page, where it is read.
+   */
   title: {
-    default: "Preface — Stop sending new clients five different links",
+    default: "Preface",
     template: "%s · Preface",
   },
   description:
