@@ -8,6 +8,8 @@ import { saveQuestions, type PortalResult } from "@/lib/portal-actions";
 export interface Question {
   prompt: string;
   type: "short" | "long";
+  /** Undefined means "inherit the step", for older snapshots. */
+  required?: boolean;
 }
 
 /**
@@ -26,6 +28,7 @@ export function QuestionsForm({
   total,
   title,
   saved,
+  stepRequired = true,
 }: {
   token: string;
   questions: Question[];
@@ -34,6 +37,12 @@ export function QuestionsForm({
   total: number;
   title: string;
   saved: boolean;
+  /**
+   * What an older snapshot's questions inherit when they carry no
+   * `required` of their own. Must match what saveQuestions enforces,
+   * or the asterisk is telling the client something untrue.
+   */
+  stepRequired?: boolean;
 }) {
   const [state, formAction] = useActionState(
     async (prev: PortalResult, formData: FormData) =>
@@ -58,10 +67,15 @@ export function QuestionsForm({
             <li key={i} className="flex flex-col gap-2.5">
               <Field
                 label={q.prompt}
+                required={q.required ?? stepRequired}
                 hint={
-                  <span data-numeric>
-                    {i + 1}/{questions.length}
-                  </span>
+                  (q.required ?? stepRequired) === false ? (
+                    "Optional"
+                  ) : (
+                    <span data-numeric>
+                      {i + 1}/{questions.length}
+                    </span>
+                  )
                 }
               >
                 {q.type === "long" ? (

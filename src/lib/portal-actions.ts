@@ -255,6 +255,8 @@ export async function saveInfo(
 interface Question {
   prompt: string;
   type: "short" | "long";
+  /** Undefined on older snapshots; inherits the step. */
+  required?: boolean;
 }
 
 export async function saveQuestions(
@@ -274,8 +276,20 @@ export async function saveQuestions(
     answers[String(i)] = String(formData.get(`q${i}`) ?? "").trim();
   });
 
-  if (step.required && questions.some((_, i) => !answers[String(i)])) {
-    return { error: "Please answer every question before continuing." };
+  /**
+   * Per question now. `required` is undefined on anything snapshotted
+   * before questions could be marked individually, and those clients
+   * have always had to answer everything on a required step — so
+   * undefined inherits the step rather than silently becoming
+   * optional halfway through someone's onboarding.
+   */
+  const unanswered = questions.findIndex(
+    (q, i) => (q.required ?? step.required) && !answers[String(i)],
+  );
+  if (unanswered !== -1) {
+    return {
+      error: `"${questions[unanswered].prompt}" is needed to continue.`,
+    };
   }
 
   await writeStep(portal, step, { answers }, true);

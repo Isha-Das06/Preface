@@ -23,6 +23,12 @@ import type { StepType } from "@/lib/supabase/types";
 export interface Question {
   prompt: string;
   type: "short" | "long";
+  /**
+   * Undefined on anything saved before questions could be marked
+   * individually. Readers treat that as "inherit the step", which is
+   * what those onboardings have always done.
+   */
+  required?: boolean;
 }
 export interface FileRequest {
   key: string;
@@ -125,7 +131,9 @@ export function writeConfig(
       return s.body.trim() ? { body: s.body.trim() } : null;
 
     case "questionnaire": {
-      const questions = s.questions.filter((q) => q.prompt.trim());
+      const questions = s.questions
+        .filter((q) => q.prompt.trim())
+        .map((q) => ({ ...q, required: q.required ?? true }));
       return questions.length ? { questions } : null;
     }
 
@@ -334,29 +342,46 @@ export function StepConfigEditor({
                   )
                 }
               />
-              <Select
-                className="w-40"
-                value={q.type}
-                onValueChange={(v) =>
-                  set(
-                    "questions",
-                    state.questions.map((x, n) =>
-                      n === i ? { ...x, type: v as Question["type"] } : x,
-                    ),
-                  )
-                }
-                options={[
-                  { value: "long", label: "Long answer" },
-                  { value: "short", label: "Short answer" },
-                ]}
-              />
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                <Select
+                  className="w-40"
+                  value={q.type}
+                  onValueChange={(v) =>
+                    set(
+                      "questions",
+                      state.questions.map((x, n) =>
+                        n === i ? { ...x, type: v as Question["type"] } : x,
+                      ),
+                    )
+                  }
+                  options={[
+                    { value: "long", label: "Long answer" },
+                    { value: "short", label: "Short answer" },
+                  ]}
+                />
+                <Checkbox
+                  checked={q.required ?? true}
+                  onCheckedChange={(v) =>
+                    set(
+                      "questions",
+                      state.questions.map((x, n) =>
+                        n === i ? { ...x, required: Boolean(v) } : x,
+                      ),
+                    )
+                  }
+                  label="Required"
+                />
+              </div>
             </Row>
           ))}
         </ul>
         <AddRow
           label="Add question"
           onClick={() =>
-            set("questions", [...state.questions, { prompt: "", type: "long" }])
+            set("questions", [
+              ...state.questions,
+              { prompt: "", type: "long", required: true },
+            ])
           }
         />
       </div>

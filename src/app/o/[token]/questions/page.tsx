@@ -27,6 +27,7 @@ export default async function QuestionsStep({
         total={portal.steps.length}
         title={step.title}
         saved={Boolean(step.completedAt)}
+        stepRequired={step.required}
       />
     </PortalShell>
   );
