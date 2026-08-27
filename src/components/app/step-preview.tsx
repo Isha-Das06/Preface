@@ -263,8 +263,15 @@ export function StepPreview({
            * `inert` is what makes it a preview: no click, no focus,
            * no tab stop, nothing announced to a screen reader as
            * something to do. It is a picture of a page.
+           *
+           * Deliberately NOT its own scroll area. It had a capped
+           * height and an overflow of its own, which put a second
+           * scrollbar inside the panel's — so the wheel moved
+           * whichever container the pointer happened to be over and
+           * neither went where you meant. The panel scrolls; this
+           * just flows.
            */
-          className="portal max-h-[70vh] overflow-y-auto px-5 pb-10"
+          className="portal px-5 pb-10"
           style={
             { "--accent-600": business.accent_color } as React.CSSProperties
           }

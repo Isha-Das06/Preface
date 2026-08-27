@@ -501,7 +501,10 @@ function StepEditor({
           />
         </div>
 
-        <div className="lg:sticky lg:top-0">
+        {/* Not sticky either. Sticking it needs a capped height, a
+            capped height needs its own scrollbar, and that is the
+            nested scroll this just removed. One panel, one scroll. */}
+        <div>
           <StepPreview
             type={step.type}
             title={effectiveTitle}
