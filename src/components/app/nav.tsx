@@ -2,23 +2,28 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, LayoutList, Settings, Users, Workflow } from "lucide-react";
+import { Settings, Users, Workflow } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, Logo } from "@/components/ui";
 import { SignOutButton } from "./sign-out";
 
 /**
- * "Waiting on" is first and is the app root, not a report buried
- * under a dashboard. It answers the only question a business opens
- * this product to ask: who is stuck, and on what.
+ * Clients is first and is the app root.
+ *
+ * There used to be a separate "Waiting on" page above it — the same
+ * clients, sorted by who had been stuck longest, with the nudge
+ * button on each row. Two entries showing overlapping data, and the
+ * word "waiting" appearing three times in the nav, the filters and a
+ * column heading. The queue's one real advantage was that the chase
+ * lived next to the client; that button now lives in this table, so
+ * the page had nothing left of its own.
  */
 const NAV: {
   href: string;
   label: string;
-  icon: typeof Bell;
+  icon: typeof Users;
   exact?: boolean;
 }[] = [
-  { href: "/app", label: "Waiting on", icon: Bell, exact: true },
   { href: "/app/clients", label: "Clients", icon: Users },
   { href: "/app/workflow", label: "Workflow", icon: Workflow },
   { href: "/app/settings", label: "Settings", icon: Settings },

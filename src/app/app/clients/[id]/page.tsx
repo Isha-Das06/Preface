@@ -117,11 +117,11 @@ export default async function ClientDetail({
       <MobileHeader title="Preface" />
       <div className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col gap-6 px-4 py-6 md:px-6 md:py-8">
         <Link
-          href="/app"
+          href="/app/clients"
           className="-mx-2 flex w-fit min-h-9 items-center gap-1.5 rounded-md px-2 text-sm text-ink-500 transition-colors hover:text-ink-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus)"
         >
           <ArrowLeft className="size-4" />
-          Waiting on
+          Clients
         </Link>
 
         <header className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">

@@ -18,6 +18,7 @@ import {
   TR,
   Table,
 } from "@/components/ui";
+import { RemindButton } from "./remind-button";
 import type { ClientRow } from "@/lib/queries";
 import type { OnboardingStatus } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
@@ -146,6 +147,7 @@ export function ClientList({ clients }: { clients: ClientRow[] }) {
                   <TH>Status</TH>
                   <TH>Progress</TH>
                   <TH>Waiting on</TH>
+                  <TH>{""}</TH>
                 </TR>
               </THead>
               <TBody>
@@ -191,6 +193,22 @@ export function ClientList({ clients }: { clients: ClientRow[] }) {
                         </span>
                       ) : (
                         <span className="text-ink-400">—</span>
+                      )}
+                    </TD>
+                    {/* The chase lives beside the thing being chased.
+                        It used to be on a separate Waiting-on page,
+                        which meant seeing a stalled client here and
+                        going somewhere else to do anything about it. */}
+                    <TD>
+                      {c.status !== "completed" && (
+                        <div className="flex justify-end">
+                          <RemindButton
+                            onboardingId={c.onboardingId}
+                            client={c.company}
+                            contact={c.contactName || c.company}
+                            remaining={c.total - c.completed}
+                          />
+                        </div>
                       )}
                     </TD>
                   </TR>
@@ -243,6 +261,19 @@ export function ClientList({ clients }: { clients: ClientRow[] }) {
                     </p>
                   )}
                 </Link>
+
+                {/* Outside the Link: a button nested in an anchor is
+                    invalid, and tapping it would follow the link. */}
+                {c.status !== "completed" && (
+                  <div className="flex justify-end px-(--card-pad) pb-(--card-pad)">
+                    <RemindButton
+                      onboardingId={c.onboardingId}
+                      client={c.company}
+                      contact={c.contactName || c.company}
+                      remaining={c.total - c.completed}
+                    />
+                  </div>
+                )}
               </Card>
             ))}
           </div>

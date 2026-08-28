@@ -162,12 +162,7 @@ export async function getClients(): Promise<ClientRow[]> {
 }
 
 /** B1's list — unfinished only, longest wait first. */
-export async function getWaitingOn(): Promise<ClientRow[]> {
-  const clients = await getClients();
-  return clients
-    .filter((c) => c.status !== "completed")
-    .sort((a, b) => (b.waitingHours ?? 0) - (a.waitingHours ?? 0));
-}
+
 
 export async function getClient(clientId: string) {
   if (!isSupabaseConfigured()) return null;
