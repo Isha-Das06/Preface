@@ -69,7 +69,15 @@ export function SettingsForm({ business }: { business: Business }) {
           </Field>
           <Field
             label="Welcome message"
-            help="The first thing a new client reads."
+            /**
+             * Not "the first thing a new client reads" — that was
+             * untrue for almost everyone. A workflow's own Welcome
+             * step wins over this, and every template ships with
+             * one, so this is the fallback for onboardings that have
+             * none: a custom one built from scratch, or a workflow
+             * whose Welcome step is switched off.
+             */
+            help="Used when an onboarding has no Welcome step of its own — a custom one, or a workflow with that step turned off."
           >
             <Textarea
               name="welcomeMessage"
