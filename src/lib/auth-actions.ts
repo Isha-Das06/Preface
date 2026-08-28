@@ -38,8 +38,42 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({ email, password });
 
-  if (error) return { error: error.message };
+  if (error) {
+    // Confirmations off: Supabase says so outright.
+    if (/already registered|already exists/i.test(error.message)) {
+      return { error: "There's already an account on that email. Log in instead." };
+    }
+    return { error: error.message };
+  }
   if (!data.user) return { error: "That didn't complete. Try again." };
+
+  /**
+   * Confirmations on: Supabase does NOT report a duplicate. It hands
+   * back a normal-looking user with an empty `identities` array, so
+   * that a signup form cannot be used to discover who has an account.
+   *
+   * We check it because the alternative is worse for the person who
+   * genuinely forgot they had signed up: they are told to confirm an
+   * email that never arrives, for an account that was already
+   * confirmed months ago. This tells only the person holding that
+   * address, at the point they tried to claim it.
+   */
+  if ((data.user.identities?.length ?? 0) === 0) {
+    return { error: "There's already an account on that email. Log in instead." };
+  }
+
+  /**
+   * No session means the project requires email confirmation, so the
+   * account exists but cannot be used yet. Redirecting to /welcome
+   * would bounce off the middleware straight back to the login form,
+   * where the only thing we could tell them is that their brand new
+   * password does not match.
+   */
+  if (!data.session) {
+    return {
+      error: `Almost there — confirm your email at ${email}, then log in.`,
+    };
+  }
 
   redirect("/welcome");
 }
@@ -52,9 +86,38 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-  // Deliberately vague: a precise message ("no account with that
-  // email") turns the login form into an account-enumeration oracle.
-  if (error) return { error: "That email and password don't match." };
+  if (error) {
+    /**
+     * One exception to the vagueness below.
+     *
+     * An account that exists but has never confirmed its email fails
+     * here like any other bad credential, and telling that person
+     * their password is wrong sends them to reset a password that
+     * was always right. They retype it, get the same answer, and
+     * conclude the product is broken — which is exactly what
+     * happened the first time this ran against hosted Supabase,
+     * where confirmations default to ON.
+     *
+     * It admits the address has an account, which the vague message
+     * exists to avoid. Worth it: someone stuck in that loop has no
+     * other way out, and they already know the account exists
+     * because they just made it.
+     */
+    const unconfirmed =
+      error.code === "email_not_confirmed" ||
+      /not confirmed/i.test(error.message);
+
+    if (unconfirmed) {
+      return {
+        error:
+          "This account still needs its email confirmed. Check your inbox for the confirmation link.",
+      };
+    }
+
+    // Deliberately vague: a precise message ("no account with that
+    // email") turns the login form into an account-enumeration oracle.
+    return { error: "That email and password don't match." };
+  }
 
   redirect(next.startsWith("/") ? next : "/app");
 }
