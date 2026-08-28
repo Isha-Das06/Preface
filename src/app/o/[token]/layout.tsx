@@ -1,5 +1,5 @@
 import { getPortal } from "@/lib/portal";
-import { groundColour } from "@/lib/portal-theme";
+import { groundVariables } from "@/lib/portal-theme";
 import { Toaster } from "@/components/ui";
 
 /**
@@ -50,10 +50,13 @@ export default async function PortalLayout({
         portal
           ? ({
               "--accent-600": portal.business.accent_color,
-              // Only the page ground moves. Cards stay --surface
-              // white and every ink stays ours, so text contrast
-              // cannot be affected by the choice.
-              "--ink-50": groundColour(portal.business.portal_ground),
+              /**
+               * The ground, plus whatever else has to move with it.
+               * A light background changes only the page colour; a
+               * dark one inverts the ink ramp too, so the text
+               * follows the choice instead of disappearing into it.
+               */
+              ...groundVariables(portal.business.portal_ground),
             } as React.CSSProperties)
           : undefined
       }

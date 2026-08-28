@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import {
   Button,
   Card,
@@ -12,12 +12,8 @@ import {
   Input,
 } from "@/components/ui";
 import { LogoUpload } from "./logo-upload";
-import { cn } from "@/lib/utils";
-import {
-  PORTAL_GROUND_OPTIONS,
-  portalGround,
-  type PortalGround,
-} from "@/lib/portal-theme";
+import { ColourField } from "./colour-field";
+import { GROUND_PRESETS, groundColour } from "@/lib/portal-theme";
 import { updateSettings } from "@/lib/actions";
 import type { Business } from "@/lib/supabase/types";
 /**
@@ -27,11 +23,6 @@ import type { Business } from "@/lib/supabase/types";
  * does not keep. It comes back when there is something to bill.
  */
 export function SettingsForm({ business }: { business: Business }) {
-  // Controlled so the selected swatch highlights immediately; the
-  // value still posts with the rest of the form.
-  const [ground, setGround] = useState<PortalGround>(
-    portalGround(business.portal_ground),
-  );
   const [state, formAction, pending] = useActionState(
     async (_prev: { error?: string; ok?: true } | undefined, fd: FormData) =>
       updateSettings(fd),
@@ -64,55 +55,23 @@ export function SettingsForm({ business }: { business: Business }) {
             label="Accent colour"
             help="Used on buttons and progress in your clients' portal."
           >
-            <div className="flex items-center gap-3">
-              <span
-                className="size-9 shrink-0 rounded-md border border-ink-200"
-                style={{ background: business.accent_color }}
-              />
-              <Input
-                name="accentColor"
-                defaultValue={business.accent_color}
-                className="max-w-[140px] font-mono"
-                aria-label="Accent colour hex"
-              />
-            </div>
+            <ColourField
+              name="accentColor"
+              defaultValue={business.accent_color}
+              ariaLabel="Accent colour"
+            />
           </Field>
 
           <Field
             label="Background"
-            help="The page your clients read on. A fixed set rather than any colour — they sign a contract on this page, and every one of these keeps the text readable."
+            help="Any colour. Pick a dark one and the text turns light to match, so it stays readable whatever you choose."
           >
-            <div className="flex flex-wrap gap-2">
-              {PORTAL_GROUND_OPTIONS.map((g) => (
-                <label
-                  key={g.id}
-                  className={cn(
-                    "flex cursor-pointer items-center gap-2.5 rounded-md border px-3 py-2 transition-colors",
-                    ground === g.id
-                      ? "border-accent-600 bg-accent-50"
-                      : "border-ink-200 hover:border-ink-300",
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="portalGround"
-                    value={g.id}
-                    checked={ground === g.id}
-                    onChange={() => setGround(g.id)}
-                    className="sr-only"
-                  />
-                  <span
-                    aria-hidden
-                    className="size-6 shrink-0 rounded"
-                    style={{
-                      background: g.value,
-                      border: `1px solid ${g.swatchBorder}`,
-                    }}
-                  />
-                  <span className="text-sm text-ink-900">{g.label}</span>
-                </label>
-              ))}
-            </div>
+            <ColourField
+              name="portalGround"
+              defaultValue={groundColour(business.portal_ground)}
+              presets={GROUND_PRESETS}
+              ariaLabel="Portal background"
+            />
           </Field>
         </CardBody>
       </Card>
