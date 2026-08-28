@@ -111,7 +111,6 @@ export default async function WorkflowPage({
             name: business?.name ?? "Your business",
             logo_url: business?.logo_url ?? null,
             accent_color: business?.accent_color ?? "#1f6f4a",
-            welcome_message: business?.welcome_message ?? null,
           }}
         />
       )}

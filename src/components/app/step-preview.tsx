@@ -52,8 +52,6 @@ export interface PreviewBusiness {
   name: string;
   logo_url: string | null;
   accent_color: string;
-  /** The hub falls back to this when there is no welcome note. */
-  welcome_message: string | null;
 }
 
 function arr<T>(v: unknown): T[] {
@@ -95,11 +93,9 @@ function Body({
           <h1 className="text-3xl font-semibold text-ink-900">
             Welcome, {SAMPLE.company}
           </h1>
-          {/* Same fallback chain as getPortal: the note, then the
-              business's standing welcome message, then ours. */}
+          {/* Same fallback as getPortal: the note, then ours. */}
           <p className="measure-prose text-base text-ink-500">
             {str(config.body) ||
-              str(business.welcome_message) ||
               "Before we start, there are a few things we need from you. You can stop and come back any time."}
           </p>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   Button,
   Card,
@@ -10,9 +10,14 @@ import {
   Checkbox,
   Field,
   Input,
-  Textarea,
 } from "@/components/ui";
 import { LogoUpload } from "./logo-upload";
+import { cn } from "@/lib/utils";
+import {
+  PORTAL_GROUND_OPTIONS,
+  portalGround,
+  type PortalGround,
+} from "@/lib/portal-theme";
 import { updateSettings } from "@/lib/actions";
 import type { Business } from "@/lib/supabase/types";
 /**
@@ -22,6 +27,11 @@ import type { Business } from "@/lib/supabase/types";
  * does not keep. It comes back when there is something to bill.
  */
 export function SettingsForm({ business }: { business: Business }) {
+  // Controlled so the selected swatch highlights immediately; the
+  // value still posts with the rest of the form.
+  const [ground, setGround] = useState<PortalGround>(
+    portalGround(business.portal_ground),
+  );
   const [state, formAction, pending] = useActionState(
     async (_prev: { error?: string; ok?: true } | undefined, fd: FormData) =>
       updateSettings(fd),
@@ -67,23 +77,42 @@ export function SettingsForm({ business }: { business: Business }) {
               />
             </div>
           </Field>
+
           <Field
-            label="Welcome message"
-            /**
-             * Not "the first thing a new client reads" — that was
-             * untrue for almost everyone. A workflow's own Welcome
-             * step wins over this, and every template ships with
-             * one, so this is the fallback for onboardings that have
-             * none: a custom one built from scratch, or a workflow
-             * whose Welcome step is switched off.
-             */
-            help="Used when an onboarding has no Welcome step of its own — a custom one, or a workflow with that step turned off."
+            label="Background"
+            help="The page your clients read on. A fixed set rather than any colour — they sign a contract on this page, and every one of these keeps the text readable."
           >
-            <Textarea
-              name="welcomeMessage"
-              rows={3}
-              defaultValue={business.welcome_message ?? ""}
-            />
+            <div className="flex flex-wrap gap-2">
+              {PORTAL_GROUND_OPTIONS.map((g) => (
+                <label
+                  key={g.id}
+                  className={cn(
+                    "flex cursor-pointer items-center gap-2.5 rounded-md border px-3 py-2 transition-colors",
+                    ground === g.id
+                      ? "border-accent-600 bg-accent-50"
+                      : "border-ink-200 hover:border-ink-300",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="portalGround"
+                    value={g.id}
+                    checked={ground === g.id}
+                    onChange={() => setGround(g.id)}
+                    className="sr-only"
+                  />
+                  <span
+                    aria-hidden
+                    className="size-6 shrink-0 rounded"
+                    style={{
+                      background: g.value,
+                      border: `1px solid ${g.swatchBorder}`,
+                    }}
+                  />
+                  <span className="text-sm text-ink-900">{g.label}</span>
+                </label>
+              ))}
+            </div>
           </Field>
         </CardBody>
       </Card>

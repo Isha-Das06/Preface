@@ -11,6 +11,7 @@ import {
   getTemplate,
 } from "./templates";
 import { fillEmptyOnboarding } from "./snapshot";
+import { portalGround } from "./portal-theme";
 import type {
   Business,
   Client,
@@ -567,10 +568,10 @@ export async function updateSettings(
     .from("businesses")
     .update({
       name,
-      welcome_message: String(formData.get("welcomeMessage") ?? "").trim(),
       sender_name: String(formData.get("senderName") ?? "").trim(),
       reply_to_email: replyTo,
       ...(accent ? { accent_color: accent } : {}),
+      portal_ground: portalGround(formData.get("portalGround")),
       reminders_enabled: formData.get("remindersEnabled") === "on",
       digest_enabled: formData.get("digestEnabled") === "on",
     })

@@ -125,11 +125,19 @@ export async function getPortal(token: string): Promise<PortalData | null> {
 
   const rows = (stepsRes.data ?? []) as OnboardingStep[];
 
-  // The instructions step becomes the hub's welcome copy.
+  /**
+   * The instructions step becomes the hub's welcome copy.
+   *
+   * There used to be a second source — a welcome message on the
+   * business — which this fell back to. It was redundant: every
+   * template ships a Welcome step, so it was overridden for almost
+   * everyone, and the place to write what a client reads first is
+   * the step they read it in. Its Settings field is gone, so this no
+   * longer reads a value nobody can edit.
+   */
   const intro = rows.find((r) => r.type === "instructions");
   const welcomeMessage =
     str(intro?.config?.body) ||
-    str(business.welcome_message) ||
     "Before we start, there are a few things we need from you. You can stop and come back any time.";
 
   const visible = rows.filter((r) => SLUG_BY_TYPE[r.type]);

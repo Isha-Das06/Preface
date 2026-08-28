@@ -28,6 +28,8 @@ export interface Business {
   slug: string;
   logo_url: string | null;
   accent_color: string;
+  /** Named ground for the client portal. See lib/portal-theme. */
+  portal_ground: string;
   welcome_message: string | null;
   reply_to_email: string | null;
   sender_name: string | null;

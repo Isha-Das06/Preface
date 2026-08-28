@@ -1,4 +1,5 @@
 import { getPortal } from "@/lib/portal";
+import { groundColour } from "@/lib/portal-theme";
 import { Toaster } from "@/components/ui";
 
 /**
@@ -47,7 +48,13 @@ export default async function PortalLayout({
       className="portal"
       style={
         portal
-          ? ({ "--accent-600": portal.business.accent_color } as React.CSSProperties)
+          ? ({
+              "--accent-600": portal.business.accent_color,
+              // Only the page ground moves. Cards stay --surface
+              // white and every ink stays ours, so text contrast
+              // cannot be affected by the choice.
+              "--ink-50": groundColour(portal.business.portal_ground),
+            } as React.CSSProperties)
           : undefined
       }
     >
