@@ -75,7 +75,7 @@ export async function runReminders(): Promise<ReminderRun> {
   run.considered = onboardings.length;
   if (onboardings.length === 0) return run;
 
-  const [bizRes, clientRes, stepRes] = await Promise.all([
+  const [bizRes, clientRes, stepRes, remRes] = await Promise.all([
     svc
       .from("businesses")
       .select("*")
@@ -89,7 +89,31 @@ export async function runReminders(): Promise<ReminderRun> {
       .select("*")
       .in("onboarding_id", onboardings.map((o) => o.id))
       .order("position"),
+    svc
+      .from("reminders")
+      .select("onboarding_id, sent_at")
+      .in("onboarding_id", onboardings.map((o) => o.id)),
   ]);
+
+  /**
+   * When each onboarding was last chased, by any means.
+   *
+   * The due-check below used to measure only days since the LINK was
+   * sent, which is not the same question. An onboarding sitting for a
+   * fortnight satisfies all three windows at once, so the first run
+   * after a backlog — reminders switched on late, a scheduler down
+   * for a day, a cron firing hourly — fired 2d, 5d and 12d back to
+   * back. Three emails in an afternoon, which is precisely the
+   * "product being a nuisance" the schedule above exists to avoid.
+   */
+  const lastReminderAt = new Map<string, string>();
+  for (const r of (remRes.data ?? []) as {
+    onboarding_id: string;
+    sent_at: string;
+  }[]) {
+    const seen = lastReminderAt.get(r.onboarding_id);
+    if (!seen || r.sent_at > seen) lastReminderAt.set(r.onboarding_id, r.sent_at);
+  }
 
   const businesses = new Map(
     ((bizRes.data ?? []) as Business[]).map((b) => [b.id, b]),
@@ -149,6 +173,20 @@ export async function runReminders(): Promise<ReminderRun> {
       run.skipped.push({
         company: label,
         why: `next nudge at ${dueAfter} days`,
+      });
+      continue;
+    }
+
+    // And enough time since the last chase, not just since the link
+    // went out. The gap is the one the schedule already implies, so a
+    // backlog is worked through at the intended pace rather than all
+    // at once.
+    const gap = dueAfter - (SCHEDULE[o.reminder_count - 1] ?? 0);
+    const since = lastReminderAt.get(o.id);
+    if (since && daysSince(since) < gap) {
+      run.skipped.push({
+        company: label,
+        why: `chased ${Math.floor(daysSince(since))}d ago, next in ${gap}d`,
       });
       continue;
     }
