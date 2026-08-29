@@ -18,6 +18,7 @@ import {
 import { MobileHeader } from "@/components/app/nav";
 import { RemindButton } from "@/components/app/remind-button";
 import { CopyLinkButton } from "@/components/app/copy-link";
+import { DeleteClient } from "@/components/app/delete-client";
 import { getClient, getOnboardingFiles, relativeTime } from "@/lib/queries";
 import { clientSteps } from "@/lib/templates";
 
@@ -326,6 +327,18 @@ export default async function ClientDetail({
                 </div>
               </CardBody>
             </Card>
+
+            {/* Last thing on the page, on purpose. Nothing lands here
+                by accident on the way to somewhere else. */}
+            <div className="flex justify-end pt-2">
+              <DeleteClient
+                clientId={client.id}
+                company={client.company}
+                hasSigned={steps.some(
+                  (s) => s.type === "agreement" && s.completed_at,
+                )}
+              />
+            </div>
           </div>
         </div>
       </div>

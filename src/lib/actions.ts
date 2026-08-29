@@ -2,7 +2,7 @@
 
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { createClient } from "./supabase/server";
+import { createClient, createServiceClient } from "./supabase/server";
 import { sendInvitation, sendReminderEmail } from "./emails";
 import {
   BLANK_STEPS,
@@ -11,6 +11,7 @@ import {
   getTemplate,
 } from "./templates";
 import { fillEmptyOnboarding } from "./snapshot";
+import { UPLOAD_BUCKET } from "./supabase/browser";
 import { groundColour } from "./portal-theme";
 import type {
   Business,
@@ -695,4 +696,81 @@ export async function addStep(
 
   revalidatePath("/app", "layout");
   return { ok: true, title: blank.title };
+}
+
+/**
+ * Delete a client and everything that belonged to them.
+ *
+ * The foreign keys cascade: the onboarding, its steps, the file
+ * records, signatures, payments and events all go with the row. What
+ * they do NOT reach is object storage, so the uploads themselves
+ * would sit in the bucket forever, counting against quota, belonging
+ * to nobody. Those are removed first, deliberately before the
+ * cascade, because once the rows are gone there is no way left to
+ * find the paths.
+ *
+ * There is no soft delete and no undo. That is why the screen asks
+ * first and makes you read the company name.
+ */
+export async function deleteClient(clientId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  // RLS scopes this to the caller's business, so an id from another
+  // tenant simply finds nothing rather than deleting someone else's
+  // client.
+  const { data: client } = await supabase
+    .from("clients")
+    .select("id, company")
+    .eq("id", clientId)
+    .maybeSingle();
+  if (!client) return { error: "That client no longer exists." };
+
+  const { data: onboardings } = await supabase
+    .from("onboardings")
+    .select("id")
+    .eq("client_id", clientId);
+
+  const onboardingIds = ((onboardings ?? []) as { id: string }[]).map(
+    (o) => o.id,
+  );
+
+  if (onboardingIds.length > 0) {
+    const { data: steps } = await supabase
+      .from("onboarding_steps")
+      .select("id")
+      .in("onboarding_id", onboardingIds);
+
+    const stepIds = ((steps ?? []) as { id: string }[]).map((s) => s.id);
+
+    if (stepIds.length > 0) {
+      const { data: files } = await supabase
+        .from("files")
+        .select("storage_path")
+        .in("onboarding_step_id", stepIds);
+
+      const paths = ((files ?? []) as { storage_path: string }[]).map(
+        (f) => f.storage_path,
+      );
+
+      if (paths.length > 0) {
+        // Service role: the bucket is private and the business's own
+        // session has no rights over objects in it.
+        const svc = createServiceClient();
+        const { error } = await svc.storage.from(UPLOAD_BUCKET).remove(paths);
+        // A storage failure must not leave the client undeletable —
+        // an orphaned object is untidy, a client you cannot remove is
+        // a bug. Log it and carry on.
+        if (error) console.error("deleteClient: storage cleanup failed", error);
+      }
+    }
+  }
+
+  const { error } = await supabase.from("clients").delete().eq("id", clientId);
+  if (error) {
+    console.error("deleteClient:", error);
+    return { error: "Couldn't delete that client." };
+  }
+
+  revalidatePath("/app", "layout");
+  return { ok: true, company: (client as { company: string }).company };
 }
