@@ -288,7 +288,19 @@ export async function createClientAction(
     meta: { company },
   });
 
-  revalidatePath("/app", "layout");
+  /**
+   * Deliberately NOT revalidating here.
+   *
+   * The dialog's second phase hands over the link, which is the
+   * whole deliverable. But on an empty account the Add-client button
+   * lives inside the first-run checklist, and revalidating swaps
+   * that checklist for the clients table the instant this returns —
+   * unmounting the dialog, and the link with it. It appeared for a
+   * few frames and vanished before it could be read or copied.
+   *
+   * The caller refreshes when the dialog is closed instead, which is
+   * the moment the new client actually needs to appear in the list.
+   */
 
   return {
     ok: true,

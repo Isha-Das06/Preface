@@ -63,6 +63,14 @@ export function NewClientButton({
   function reset(next: boolean) {
     setOpen(next);
     if (!next) {
+      /**
+       * The list is refreshed on the way OUT, not when the client is
+       * created. Refreshing at creation time unmounts this dialog on
+       * an empty account — the first-run checklist it sits inside is
+       * replaced by the clients table — and takes the link away
+       * before anyone can copy it.
+       */
+      router.refresh();
       setTimeout(() => {
         setCreated(null);
     setEmailed(false);
