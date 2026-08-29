@@ -41,6 +41,53 @@ export function appUrl(path = "") {
   return `${base.replace(/\/$/, "")}${path}`;
 }
 
+/**
+ * Send through an ordinary SMTP server — in practice, Gmail.
+ *
+ * The reason this exists alongside Resend: Resend will only deliver
+ * to strangers once you own and verify a domain, and a domain costs
+ * money. An SMTP account you already have does not. A Gmail account
+ * will carry roughly 500 messages a day, which is far past what a
+ * beta needs, and it means the product can actually email a client
+ * today rather than after a purchase.
+ *
+ * The client still sees the BUSINESS as the sender name, exactly as
+ * with Resend. Only the address underneath differs.
+ */
+async function sendViaSmtp(mail: Mail): Promise<MailResult> {
+  const { createTransport } = await import("nodemailer");
+
+  const transport = createTransport({
+    host: process.env.SMTP_HOST ?? "smtp.gmail.com",
+    port: Number(process.env.SMTP_PORT ?? 465),
+    // 465 is implicit TLS; anything else (587) upgrades with STARTTLS.
+    secure: Number(process.env.SMTP_PORT ?? 465) === 465,
+    auth: {
+      user: process.env.SMTP_USER!,
+      pass: process.env.SMTP_PASS!,
+    },
+  });
+
+  try {
+    await transport.sendMail({
+      // Gmail rewrites From to the authenticated account whatever we
+      // put here, so the address is the account and only the display
+      // name is ours to choose. Saying so beats wondering later why
+      // EMAIL_FROM appears to be ignored.
+      from: { name: mail.fromName, address: process.env.SMTP_USER! },
+      to: mail.toName ? { name: mail.toName, address: mail.to } : mail.to,
+      replyTo: mail.replyTo ?? undefined,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+    });
+    return { ok: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return { error: `SMTP refused the message: ${message}` };
+  }
+}
+
 async function sendViaResend(mail: Mail, key: string): Promise<MailResult> {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -93,10 +140,21 @@ async function sendViaMailpit(mail: Mail): Promise<MailResult> {
  */
 export async function sendMail(mail: Mail): Promise<MailResult> {
   try {
+    /**
+     * Resend first when it is configured, then SMTP, then the local
+     * catcher. Mailpit is last on purpose: it only exists on a
+     * developer's machine, so reaching it in production means no
+     * sender was configured at all and every message is being
+     * thrown at 127.0.0.1.
+     */
     const key = process.env.RESEND_API_KEY;
+    const smtp = process.env.SMTP_USER && process.env.SMTP_PASS;
+
     const result = key
       ? await sendViaResend(mail, key)
-      : await sendViaMailpit(mail);
+      : smtp
+        ? await sendViaSmtp(mail)
+        : await sendViaMailpit(mail);
 
     if ("error" in result) console.error("sendMail:", result.error, mail.subject);
     return result;
