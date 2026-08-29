@@ -80,6 +80,28 @@ export async function getBusiness(): Promise<Business | null> {
  * targets (tens of active onboardings) that is far cheaper than a
  * view or an aggregate query, and much easier to read.
  */
+/**
+ * How many onboardings are still open. One number, one query.
+ *
+ * The sidebar shows this on every page in the app, and it used to
+ * come from getClients() — which reads every client, every
+ * onboarding, every step and every reminder, then assembles the lot,
+ * so that a badge could count the rows that were not finished. Four
+ * full reads on every navigation, thrown away except for one integer,
+ * on pages that never look at a client list at all.
+ */
+export async function getActiveCount(): Promise<number> {
+  if (!isSupabaseConfigured()) return 0;
+  const supabase = await createClient();
+
+  const { count } = await supabase
+    .from("onboardings")
+    .select("id", { count: "exact", head: true })
+    .neq("status", "completed");
+
+  return count ?? 0;
+}
+
 export async function getClients(): Promise<ClientRow[]> {
   if (!isSupabaseConfigured()) return [];
   const supabase = await createClient();

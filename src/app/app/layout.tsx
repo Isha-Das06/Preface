@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { MobileNav, Sidebar } from "@/components/app/nav";
 import { Toaster, TooltipProvider } from "@/components/ui";
-import { getBusiness, getClients } from "@/lib/queries";
+import { getActiveCount, getBusiness } from "@/lib/queries";
 
 /**
  * No plan, no seat limit, nothing to pay. Preface is free while it is
@@ -19,8 +19,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   // showing a shell captioned "Your business" that does not work.
   if (!business) redirect("/welcome");
 
-  const clients = await getClients();
-  const active = clients.filter((c) => c.status !== "completed").length;
+  const active = await getActiveCount();
 
   return (
     <TooltipProvider>
