@@ -17,6 +17,7 @@ export function AgreementForm({
   index,
   total,
   title,
+  description,
   businessName,
   clientCompany,
   sections,
@@ -32,6 +33,8 @@ export function AgreementForm({
   index: number;
   total: number;
   title: string;
+  /** The owner's own words for this step, when they wrote any. */
+  description?: string;
   businessName: string;
   clientCompany: string;
   sections: AgreementSection[];
@@ -56,7 +59,9 @@ export function AgreementForm({
         index={index}
         total={total}
         title={title}
-        description="Please read through, then sign at the bottom."
+        description={
+          description || "Please read through, then sign at the bottom."
+        }
         error={state?.error}
       >
         <div className="flex flex-col gap-6">

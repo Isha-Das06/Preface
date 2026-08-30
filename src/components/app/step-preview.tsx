@@ -121,6 +121,7 @@ function Body({
         <QuestionsForm
           {...frame}
           questions={arr(config.questions)}
+          description={description || undefined}
           answers={{}}
           saved={false}
         />
@@ -174,6 +175,7 @@ function Body({
           clientCompany={SAMPLE.company}
           sections={[]}
           body={str(config.body)}
+          description={description || undefined}
           signed={false}
           defaultName={SAMPLE.name}
           defaultEmail={SAMPLE.email}
@@ -186,7 +188,7 @@ function Body({
       const currency = str(config.currency, "usd");
 
       return (
-        <StepFrame {...frame}>
+        <StepFrame {...frame} description={description || undefined}>
           <PaymentPanel
             token={SAMPLE_TOKEN}
             amount={new Intl.NumberFormat("en-US", {

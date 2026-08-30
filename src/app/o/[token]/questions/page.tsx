@@ -26,6 +26,7 @@ export default async function QuestionsStep({
         index={step.displayIndex}
         total={portal.steps.length}
         title={step.title}
+        description={step.description ?? undefined}
         saved={Boolean(step.completedAt)}
         stepRequired={step.required}
       />

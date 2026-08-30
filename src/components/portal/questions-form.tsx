@@ -27,6 +27,7 @@ export function QuestionsForm({
   index,
   total,
   title,
+  description,
   saved,
   stepRequired = true,
 }: {
@@ -36,6 +37,8 @@ export function QuestionsForm({
   index: number;
   total: number;
   title: string;
+  /** The owner's own words for this step, when they wrote any. */
+  description?: string;
   saved: boolean;
   /**
    * What an older snapshot's questions inherit when they carry no
@@ -57,7 +60,10 @@ export function QuestionsForm({
         index={index}
         total={total}
         title={title}
-        description={`There ${questions.length === 1 ? "is 1 question" : `are ${questions.length} questions`}. Everything is saved when you continue — you can come back and change an answer.`}
+        description={
+          description ||
+          `There ${questions.length === 1 ? "is 1 question" : `are ${questions.length} questions`}. Everything is saved when you continue — you can come back and change an answer.`
+        }
         continueSubmit
         saved={saved}
         error={state?.error}

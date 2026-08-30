@@ -33,7 +33,8 @@ export default async function PaymentStep({
     typeof step.config.amountCents === "number" ? step.config.amountCents : 0;
   const currency =
     typeof step.config.currency === "string" ? step.config.currency : "usd";
-  const description =
+  // The line item under the amount, not the step's instructions.
+  const lineItem =
     typeof step.config.description === "string"
       ? step.config.description
       : step.title;
@@ -50,11 +51,12 @@ export default async function PaymentStep({
         index={step.displayIndex}
         total={portal.steps.length}
         title={step.title}
+        description={step.description ?? undefined}
       >
         <PaymentPanel
           token={token}
           amount={amount}
-          description={description}
+          description={lineItem}
           businessName={portal.business.name}
           payUrl={safeExternalUrl(
             typeof step.config.payUrl === "string" ? step.config.payUrl : null,

@@ -32,6 +32,7 @@ export default async function AgreementStep({
         index={step.displayIndex}
         total={portal.steps.length}
         title={step.title}
+        description={step.description ?? undefined}
         businessName={portal.business.name}
         clientCompany={portal.client.company}
         sections={sections}
