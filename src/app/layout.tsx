@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { Analytics } from "@/components/analytics";
 
 /**
  * Fonts are BUNDLED, not fetched from Google at build time.
@@ -78,6 +79,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full" suppressHydrationWarning>
         {children}
+        <Analytics />
       </body>
     </html>
   );
