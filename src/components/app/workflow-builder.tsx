@@ -139,7 +139,10 @@ function StepRow({
       >
         <span className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium text-ink-900">{step.title}</span>
-          {!step.required && (
+          {/* The welcome note is not a step the client can skip —
+              it is the first thing they read. Calling it optional
+              answers a question nobody asked. */}
+          {!step.required && step.type !== "instructions" && (
             <span className="text-xs text-ink-400">Optional</span>
           )}
         </span>
