@@ -46,10 +46,17 @@ export function Sidebar({
 
   return (
     <aside className="hidden w-[232px] shrink-0 flex-col border-r border-ink-200 bg-surface md:flex">
-      <div className="flex items-center gap-2.5 px-5 py-5">
+      {/* The mark goes home, the way every logo in every app does.
+          Home for someone signed in is their client list, not the
+          marketing page they have already bought. */}
+      <Link
+        href="/app/clients"
+        aria-label="Preface home"
+        className="flex items-center gap-2.5 rounded-[6px] px-5 py-5 transition-opacity duration-(--dur-fast) hover:opacity-80 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--focus)"
+      >
         <Logo className="size-7" glow title="" />
         <span className="text-base font-semibold text-ink-900">Preface</span>
-      </div>
+      </Link>
 
       <nav className="flex flex-1 flex-col gap-0.5 px-3">
         {NAV.map(({ href, label, icon: Icon, exact }) => {
